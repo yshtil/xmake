@@ -15,30 +15,30 @@ close(MAKEFILE);
 
 # TEST #1
 
+$answer = "\n";
 &run_make_with_options($makefile,
                        "",
                        &get_logfile,
                        0);
-$answer = "\n";
 &compare_output($answer,&get_logfile(1));
 
 # TEST #2
 
+$answer = "all\n";
 &run_make_with_options($makefile,
                        "all",
                        &get_logfile,
                        0);
-$answer = "all\n";
 &compare_output($answer,&get_logfile(1));
 
 
 # TEST #3
 
+$answer = "foo bar baz yaz\nfoo bar baz yaz\nfoo bar baz yaz\nfoo bar baz yaz\n";
 &run_make_with_options($makefile,
                        "foo bar baz yaz",
                        &get_logfile,
                        0);
-$answer = "foo bar baz yaz\nfoo bar baz yaz\nfoo bar baz yaz\nfoo bar baz yaz\n";
 &compare_output($answer,&get_logfile(1));
 
 

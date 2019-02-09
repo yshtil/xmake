@@ -147,7 +147,7 @@ a: COMMAND += snafu $(BLAH)
 
 # Test #13
 # Test double-colon rules with target-specific variable values
-
+$xml_skip = 1;
 run_make_test('
 W = bad
 X = bad
@@ -170,12 +170,12 @@ endif
 # Test #14
 # Test double-colon rules with target-specific variable values and
 # inheritance
-
+$xml_skip = 1;
 run_make_test(undef, 'bar', "ok ok bar nopat\nok ok bar nopat\n");
 
 # Test #15
 # Test double-colon rules with pattern-specific variable values
-
+$xml_skip = 1;
 run_make_test(undef, 'foo PATTERN=yes', "ok ok foo pat\nok ok foo pat\n");
 
 # Test #16
@@ -194,8 +194,7 @@ deals_changed_since: ; @echo $(BUILD_OBJ)
 # Test a merge of set_lists for files, where one list is much longer
 # than the other.  See Savannah bug #15757.
 
-mkdir('t1', 0777);
-touch('t1/rules.mk');
+$xml_init_cmd = q!mkdir('t1', 0777);touch('t1/rules.mk');!;
 
 run_make_test('
 VPATH = t1
@@ -210,8 +209,7 @@ rules.mk : MYVAR = foo
 ',
               '-I t1', 'MYVAR= FOOVAR=bar ALLVAR=xxx');
 
-rmfiles('t1/rules.mk');
-rmdir('t1');
+$xml_init_cmd = q!unlink('t1/rules.mk');rmdir('t1');!;
 
 # TEST #18
 

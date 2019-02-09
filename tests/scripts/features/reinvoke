@@ -7,6 +7,8 @@ If the makefile or one it includes can be rebuilt then it is, and make
 is reinvoked.  We create a rule to rebuild the makefile from a temp
 file, then touch the temp file to make it newer than the makefile.";
 
+$xml and return -1;
+
 $omkfile = $makefile;
 
 &utouch(-600, 'incl.mk');

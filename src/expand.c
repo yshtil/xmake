@@ -24,6 +24,12 @@ this program.  If not, see <http://www.gnu.org/licenses/>.  */
 #include "variable.h"
 #include "rule.h"
 
+#ifdef XML
+#include "xmldef.h"
+extern char **xml_flag;
+static struct file *current_file;
+#endif
+
 /* Initially, any errors reported when expanding strings will be reported
    against the file where the error appears.  */
 const floc **expanding_var = &reading_file;
@@ -173,6 +179,11 @@ reference_variable (char *o, const char *name, size_t length)
 
   value = (v->recursive ? recursively_expand (v) : v->value);
 
+#ifdef XML
+  /* Save target specific var */
+  if (xml_flag && v->per_target)
+    xml_print_variable((void *)v, (void *)current_file);
+#endif
   o = variable_buffer_output (o, value, strlen (value));
 
   if (v->recursive)
@@ -268,7 +279,7 @@ variable_expand_string (char *line, const char *string, size_t length)
             end = strchr (beg, closeparen);
             if (end == 0)
               /* Unterminated variable reference.  */
-              O (fatal, *expanding_var, _("unterminated variable reference"));
+                O (fatal, *expanding_var, _("unterminated variable reference"));
             p1 = lindex (beg, end, '$');
             if (p1 != 0)
               {
@@ -472,6 +483,11 @@ variable_expand_for_file (const char *line, struct file *file)
   else
     reading_file = 0;
 
+#ifdef XML
+  if (xml_flag)
+    current_file = file;
+#endif
+  
   result = variable_expand (line);
 
   current_variable_set_list = savev;

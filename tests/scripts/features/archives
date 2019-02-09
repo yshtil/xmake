@@ -2,6 +2,8 @@
 
 $description = "Test GNU make's archive management features.";
 
+return -1 if $xml;
+
 $details = "\
 This only works on systems that support it.";
 

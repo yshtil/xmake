@@ -38,13 +38,13 @@ EOF
 close(MAKEFILE);
 
 
-@files_to_touch = ("$workdir${pathsep}main.c","$workdir${pathsep}defs.h",
+$xml_init_cmd = qq!\@files_to_touch = ("$workdir${pathsep}main.c","$workdir${pathsep}defs.h",
                "$workdir${pathsep}command.h",
                "$workdir${pathsep}commands.c","$workdir${pathsep}display.c",
                "$workdir${pathsep}buffer.h",
                "$workdir${pathsep}command.c");
-
-&touch(@files_to_touch);
+system("rm -f rm -f work/*.[ch]");
+&touch(\@files_to_touch);!;
 
 if ($vos) {
   $error_code = 3307;
@@ -53,8 +53,6 @@ else {
   $error_code = 512;
 }
 
-&run_make_with_options($makefile, "-k", &get_logfile, $error_code);
-
 # Create the answer to what should be produced by this Makefile
 $answer = "cc -c main.c
 $make_name: *** No rule to make target 'kbd.c', needed by 'kbd.o'.
@@ -62,12 +60,19 @@ cc -c commands.c
 cc -c display.c
 $make_name: Target 'edit' not remade because of errors.\n";
 
+&run_make_with_options($makefile, "-k", &get_logfile, $error_code);
+
 # COMPARE RESULTS
 
 &compare_output($answer, &get_logfile(1));
 
-unlink(@files_to_touch) unless $keep;
+$xml_init_cmd = qq!\@files_to_touch = ("$workdir${pathsep}main.c","$workdir${pathsep}defs.h",
+               "$workdir${pathsep}command.h",
+               "$workdir${pathsep}commands.c","$workdir${pathsep}display.c",
+               "$workdir${pathsep}buffer.h",
+               "$workdir${pathsep}command.c");
 
+unlink(\@files_to_touch);!;
 
 # TEST 1: Make sure that top-level targets that depend on targets that
 # previously failed to build, aren't attempted.  Regression for PR/1634.
@@ -89,17 +94,18 @@ EOF
 
 close(MAKEFILE);
 
-&run_make_with_options($makefile2, "-k", &get_logfile, $error_code);
-
 $answer = "exit 1
 $make_name: *** [$makefile2;9: foo.o] Error 1
 $make_name: Target 'all' not remade because of errors.\n";
+
+&run_make_with_options($makefile2, "-k", &get_logfile, $error_code);
 
 &compare_output($answer, &get_logfile(1));
 
 # TEST -- make sure we keep the error code if we can't create an included
 # makefile.
 
+$xml_skip = 1;
 if (defined $ERR_no_such_file) {
     run_make_test('all: ; @echo hi
 include ifile

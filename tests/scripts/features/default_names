@@ -6,14 +6,15 @@ default makefiles in the correct order (GNUmakefile,makefile,Makefile)";
 # Create a makefile called "GNUmakefile"
 $makefile = "GNUmakefile";
 
-open(MAKEFILE,"> $makefile");
-print MAKEFILE "FIRST: ; \@echo It chose GNUmakefile\n";
+$xml_init_cmd = qq!open(MAKEFILE,"> $makefile");
+print MAKEFILE "FIRST: ; \\\@echo It chose GNUmakefile\n";
 close(MAKEFILE);
 
 # Create another makefile called "makefile"
 open(MAKEFILE,"> makefile");
-print MAKEFILE "SECOND: ; \@echo It chose makefile\n";
+print MAKEFILE "SECOND: ; \\\@echo It chose makefile\n";
 close(MAKEFILE);
+!;
 
 # DOS/WIN32/MacOSX platforms are case-insensitive / case-preserving, so
 # Makefile is the same file as makefile.  Just test what we can here.
@@ -27,18 +28,23 @@ if (! -f 'Makefile') {
     close(MAKEFILE);
 }
 
+$DB::single = 1;
+$answer = "It chose GNUmakefile\n";
 run_make_with_options("","",&get_logfile);
-compare_output("It chose GNUmakefile\n",&get_logfile(1));
-unlink($makefile);
+compare_output($answer,&get_logfile(1));
+$xml_init_cmd = qq!unlink("$makefile");!;
 
+$answer = "It chose makefile\n";
 run_make_with_options("","",&get_logfile);
-compare_output("It chose makefile\n",&get_logfile(1));
-unlink("makefile");
+compare_output($answer,&get_logfile(1));
+$xml_init_cmd = q!unlink("makefile");!;
 
 if ($case_sensitive) {
+  $answer = "It chose Makefile\n";
     run_make_with_options("","",&get_logfile);
-    compare_output("It chose Makefile\n",&get_logfile(1));
+    compare_output($answer,&get_logfile(1));
     unlink("Makefile");
 }
 
+unlink("$makefile", "makefile", "Makefile");
 1;

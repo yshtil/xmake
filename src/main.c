@@ -25,6 +25,10 @@ this program.  If not, see <http://www.gnu.org/licenses/>.  */
 #include "debug.h"
 #include "getopt.h"
 
+#ifdef XML
+#include "xmldef.h"
+#endif
+
 #include <assert.h>
 #ifdef _AMIGA
 # include <dos/dos.h>
@@ -155,6 +159,28 @@ struct stringlist
     unsigned int max;   /* Number of pointers allocated.  */
   };
 
+
+#ifdef XML
+int xml_flag = 0; /* May contain the prefix of variables to report */
+#define DFEAULT_XML_PREFIX "MAKEX_"
+const char *xml_prefix = 0;
+extern char *def_goal;
+int wait_job_inprogress_flag = 1;
+#endif
+
+char *template;
+const char *tmpdir;
+
+#ifdef VMS
+# define DEFAULT_TMPDIR     "/sys$scratch/"
+#else
+# ifdef P_tmpdir
+#  define DEFAULT_TMPDIR    P_tmpdir
+# else
+#  define DEFAULT_TMPDIR    "/tmp"
+# endif
+#endif
+#define DEFAULT_TMPFILE     "GmXXXXXX"
 
 /* The recognized command switches.  */
 
@@ -409,6 +435,10 @@ static const char *const usage[] =
                               Consider FILE to be infinitely new.\n"),
     N_("\
   --warn-undefined-variables  Warn when an undefined variable is referenced.\n"),
+#ifdef XML
+    N_("\
+  -x, --xml                   prints XML of the build graph, does not execute commands.\n"),
+#endif
     NULL
   };
 
@@ -457,6 +487,9 @@ static const struct command_switch switches[] =
     { 'o', filename, &old_files, 0, 0, 0, 0, 0, "old-file" },
     { 'O', string, &output_sync_option, 1, 1, 0, "target", 0, "output-sync" },
     { 'W', filename, &new_files, 0, 0, 0, 0, 0, "what-if" },
+#ifdef XML
+    { 'x', flag, &xml_flag, 0, 0, 0, 0, 0, "xml" }, 
+#endif
 
     /* These are long-style options.  */
     { CHAR_MAX+1, strlist, &db_flags, 1, 1, 0, "basic", 0, "debug" },
@@ -469,6 +502,9 @@ static const struct command_switch switches[] =
     { CHAR_MAX+7, string, &sync_mutex, 1, 1, 0, 0, 0, "sync-mutex" },
     { CHAR_MAX+8, flag_off, &silent_flag, 1, 1, 0, 0, &default_silent_flag, "no-silent" },
     { CHAR_MAX+9, string, &jobserver_auth, 1, 0, 0, 0, 0, "jobserver-fds" },
+    { CHAR_MAX+10, flag_off, &wait_job_inprogress_flag, 1, 1, 0, 0, 0,
+      "inhibit-wait-jobinprogress" },
+    { CHAR_MAX+11, string, &xml_prefix, 0, 0, 0, 0, 0, "prefix" },
     { 0, 0, 0, 0, 0, 0, 0, 0, 0 }
   };
 
@@ -485,6 +521,9 @@ static struct option long_option_aliases[] =
     { "dry-run",        no_argument,            0, 'n' },
     { "recon",          no_argument,            0, 'n' },
     { "makefile",       required_argument,      0, 'f' },
+#ifdef XML
+    { "xml",	        required_argument,	0, 'x' },
+#endif
   };
 
 /* List of goal targets.  */
@@ -1333,6 +1372,9 @@ main (int argc, char **argv, char **envp)
 #ifdef MAKE_LOAD
                            " load"
 #endif
+#ifdef XML
+                           " xml"
+#endif
                            ;
 
     define_variable_cname (".FEATURES", features, o_default, 0);
@@ -1475,6 +1517,15 @@ main (int argc, char **argv, char **envp)
     arg_job_slots = INVALID_JOB_SLOTS;
 
     decode_switches (argc, (const char **)argv, 0);
+#ifdef XML
+  if (xml_flag) {
+    {
+      if (!xml_prefix)
+        xml_prefix = DFEAULT_XML_PREFIX;
+      xml_start();
+    }
+  }
+#endif
     argv_slots = arg_job_slots;
 
     if (arg_job_slots == INVALID_JOB_SLOTS)
@@ -1530,6 +1581,11 @@ main (int argc, char **argv, char **envp)
 
   /* Set always_make_flag if -B was given and we've not restarted already.  */
   always_make_flag = always_make_set && (restarts == 0);
+
+#ifdef XML
+  if (xml_flag)
+    always_make_flag = 1;
+#endif
 
   /* Print version information, and exit.  */
   if (print_version_flag)
@@ -1714,6 +1770,9 @@ main (int argc, char **argv, char **envp)
 #endif
           if (chdir (dir) < 0)
             pfatal_with_name (dir);
+#ifdef XML
+          xml_add_directory(dir);
+#endif
         }
     }
 
@@ -1781,23 +1840,10 @@ main (int argc, char **argv, char **envp)
                and thus re-read the makefiles, we read standard input
                into a temporary file and read from that.  */
             FILE *outfile;
-            char *template;
-            const char *tmpdir;
 
             if (stdin_nm)
               O (fatal, NILF,
                  _("Makefile from standard input specified twice."));
-
-#ifdef VMS
-# define DEFAULT_TMPDIR     "/sys$scratch/"
-#else
-# ifdef P_tmpdir
-#  define DEFAULT_TMPDIR    P_tmpdir
-# else
-#  define DEFAULT_TMPDIR    "/tmp"
-# endif
-#endif
-#define DEFAULT_TMPFILE     "GmXXXXXX"
 
             if (((tmpdir = getenv ("TMPDIR")) == NULL || *tmpdir == '\0')
 #if defined (__MSDOS__) || defined (WINDOWS32) || defined (__EMX__)
@@ -2588,6 +2634,19 @@ main (int argc, char **argv, char **envp)
 
   DB (DB_BASIC, (_("Updating goal targets....\n")));
 
+#ifdef XML
+  if (xml_flag) {
+    const struct variable_set_list *setlist;
+    job_slots = 1;
+    /* Output Interesting variables */
+    for (setlist = current_variable_set_list;
+         setlist != 0; setlist = setlist->next)
+      {
+        const struct variable_set *set = setlist->set;
+        hash_map_arg((struct hash_table *)&set->table, xml_print_variable, NULL);
+      }
+  }
+#endif
   {
     switch (update_goal_chain (goals))
     {
@@ -2596,6 +2655,10 @@ main (int argc, char **argv, char **envp)
         /* FALLTHROUGH */
       case us_success:
         /* Keep the previous result.  */
+#ifdef XML
+        if (xml_flag)
+          xml_finish();
+#endif
         break;
       case us_question:
         /* We are under -q and would run some commands.  */
@@ -2606,6 +2669,16 @@ main (int argc, char **argv, char **envp)
         makefile_status = MAKE_FAILURE;
         break;
     }
+
+#ifdef XML
+    if (xml_flag)
+      {
+        struct variable def;
+        def.name = (char *)".DEFAULT_GOAL";
+        def.value = def_goal;
+        xml_print_variable(&def, NULL);
+      }
+#endif
 
     /* If we detected some clock skew, generate one last warning */
     if (clock_skew_detected)
@@ -3220,6 +3293,12 @@ define_makeflags (int all, int makefile)
 
         case filename:
         case strlist:
+#ifdef XML
+          /* Add xml as flag ALWAYS */
+          if (cs->c == 'x' && cs->value_ptr) {
+            ADD_FLAG(0,0);
+          } else
+#endif
           if (all)
             {
               struct stringlist *sl = *(struct stringlist **) cs->value_ptr;
@@ -3504,6 +3583,9 @@ die (int status)
           _x = chdir (directory_before_chdir);
         }
     }
-
+#ifdef XML
+        if (xml_flag)
+          xml_finish();
+#endif
   exit (status);
 }

@@ -260,6 +260,13 @@ sub toplevel
     mkdir ($workpath, 0777) || &error ("Couldn't mkdir $workpath: $!\n");
   }
 
+  if ($xml)
+  {
+    -d "$workpath/xml"
+    || mkdir ("$workpath/xml", 0777)
+    || &error ("Couldn't mkdir $workpath/xml: $!\n");
+  }
+
   if (!-d $scriptpath)
   {
     &error ("Failed to find $scriptpath containing perl test scripts.\n");
@@ -277,6 +284,14 @@ sub toplevel
         -d "$workpath/$dir"
            || mkdir ("$workpath/$dir", 0777)
            || &error ("Couldn't mkdir $workpath/$dir: $!\n");
+
+        if ($xml)
+        {
+          -d "$workpath/xml/$dir"
+          || mkdir ("$workpath/xml/$dir", 0777)
+          || &error ("Couldn't mkdir $workpath/xml/$dir: $!\n");
+
+        }
       }
     }
   }
@@ -299,6 +314,14 @@ sub toplevel
           || &error ("Couldn't opendir $scriptpath/$dir: $!\n");
       @files = grep (!/^(\..*|CVS|RCS|.*~)$/, readdir (SCRIPTDIR) );
       closedir (SCRIPTDIR);
+      if ($xml)
+      {
+        next if -d "$workpath/xml/$dir";
+        mkdir ("$workpath/xml/$dir", 0777)
+        || &error ("Couldn't mkdir $workpath/xml/$dir: $!\n");
+        1;
+      }
+
       foreach $test (@files)
       {
         -d $test and next;
@@ -313,6 +336,37 @@ sub toplevel
   }
 
   print "\n";
+
+  # Account for restriction
+  @TESTS = sort @TESTS;
+  if ($restriction)
+  {
+    $DB::single = 1;
+    my ($test, $kind) = $restriction =~ /(.+)(\+|-)$/;
+
+    my (@tests, $seen);
+    for (@TESTS)
+    {
+      if ($kind eq '-')
+      {
+        push(@tests, $_);
+        if ($test eq $_) {
+          last;
+        } else
+        {
+          next;
+        }
+      }
+      # here kind eq +
+      $seen++ if $test eq $_;
+      next if !$seen;
+      push(@tests, $_);
+    }
+
+    @TESTS = @tests;
+    $DB::single = 1;
+    1;
+  }
 
   run_all_tests();
 
@@ -510,8 +564,21 @@ sub parse_command_line
     }
     else # must be the name of a test
     {
-      $option =~ s/\.pl$//;
-      push(@TESTS,$option);
+      # See if ends on +-
+      if ($option =~ /\+|-$/)
+      {
+        if ($restriction)
+        {
+          print "Invalid second restriction: $option\n";
+          &print_usage;
+          exit 0;
+        }
+        $restriction = $option;
+      } else
+      {
+        $option =~ s/\.pl$//;
+        push(@TESTS,$option);
+      }
     }
   }
 }
@@ -570,12 +637,15 @@ sub print_banner
 
 sub run_all_tests
 {
+  # Run clean first
     $categories_run = 0;
 
     $lasttest = '';
     foreach $testname (sort @TESTS) {
+      undef $xml_post_check;
         # Skip duplicates on VMS caused by logical name search lists.
         next if $testname eq $lasttest;
+        system("git clean -fd > /dev/null 2>&1"); # Clean residue from previous test
         $lasttest = $testname;
         $suite_passed = 1;       # reset by test on failure
         $num_of_logfiles = 0;
@@ -601,11 +671,13 @@ sub run_all_tests
             $baseext = 'base';
             $runext = 'run';
             $extext = '.';
+            $ansext = 'ans';
         }
         $extext = '_' if $^O eq 'VMS';
         $log_filename = "$testpath.$logext";
         $diff_filename = "$testpath.$diffext";
         $base_filename = "$testpath.$baseext";
+        $ans_filename = "$testpath.$ansext";
         $run_filename = "$testpath.$runext";
         $tmp_filename = "$testpath.$tmpfilesuffix";
 
@@ -701,6 +773,11 @@ sub run_all_tests
         }
 
         print "$status\n";
+        if ($stop_on_error && $status =~ /^FAILED/)
+        {
+          print "Stopping on error ...\n";
+          exit 1;
+        }
     }
 }
 
@@ -815,12 +892,15 @@ sub error
 
 sub compare_output
 {
-  local($answer,$logfile) = @_;
+  (undef, $logfile) = @_;
   local($slurp, $answer_matched) = ('', 0);
 
+  local $answer1 = $answer;
+
+  undef $answer;
   ++$tests_run;
 
-  if (! defined $answer) {
+  if (! defined $answer1) {
       print "Ignoring output ........ " if $debug;
       $answer_matched = 1;
   } else {
@@ -833,142 +913,163 @@ sub compare_output
       $slurp =~ s/^.*modification time .*in the future.*\n//gm;
       $slurp =~ s/^.*Clock skew detected.*\n//gm;
 
-      if ($slurp eq $answer) {
-          $answer_matched = 1;
-      } else {
-          # See if it is a slash or CRLF problem
-          local ($answer_mod, $slurp_mod) = ($answer, $slurp);
+      if ($slurp eq $answer1)
+      {
+        $answer_matched = 1;
+      } else
+      {
+        # See if it is a slash or CRLF problem
+        local ($answer_mod, $slurp_mod) = ($answer1, $slurp);
 
-          $answer_mod =~ tr,\\,/,;
-          $answer_mod =~ s,\r\n,\n,gs;
+        $answer_mod =~ tr,\\,/,;
+        $answer_mod =~ s,\r\n,\n,gs;
 
-          $slurp_mod =~ tr,\\,/,;
-          $slurp_mod =~ s,\r\n,\n,gs;
+        $slurp_mod =~ tr,\\,/,;
+        $slurp_mod =~ s,\r\n,\n,gs;
 
-          $answer_matched = ($slurp_mod eq $answer_mod);
-          if ($^O eq 'VMS') {
+        $answer_matched = ($slurp_mod eq $answer_mod);
+        if ($^O eq 'VMS')
+        {
 
-            # VMS has extra blank lines in output sometimes.
-            # Ticket #41760
-            if (!$answer_matched) {
-              $slurp_mod =~ s/\n\n+/\n/gm;
-              $slurp_mod =~ s/\A\n+//g;
-              $answer_matched = ($slurp_mod eq $answer_mod);
-            }
-
-            # VMS adding a "Waiting for unfinished jobs..."
-            # Remove it for now to see what else is going on.
-            if (!$answer_matched) {
-              $slurp_mod =~ s/^.+\*\*\* Waiting for unfinished jobs.+$//m;
-              $slurp_mod =~ s/\n\n/\n/gm;
-              $slurp_mod =~ s/^\n+//gm;
-              $answer_matched = ($slurp_mod eq $answer_mod);
-            }
-
-            # VMS wants target device to exist or generates an error,
-            # Some test tagets look like VMS devices and trip this.
-            if (!$answer_matched) {
-              $slurp_mod =~ s/^.+\: no such device or address.*$//gim;
-              $slurp_mod =~ s/\n\n/\n/gm;
-              $slurp_mod =~ s/^\n+//gm;
-              $answer_matched = ($slurp_mod eq $answer_mod);
-            }
-
-            # VMS error message has a different case
-            if (!$answer_matched) {
-              $slurp_mod =~ s/no such file /No such file /gm;
-              $answer_matched = ($slurp_mod eq $answer_mod);
-            }
-
-            # VMS is putting comas instead of spaces in output
-            if (!$answer_matched) {
-              $slurp_mod =~ s/,/ /gm;
-              $answer_matched = ($slurp_mod eq $answer_mod);
-            }
-
-            # VMS Is sometimes adding extra leading spaces to output?
-            if (!$answer_matched) {
-               my $slurp_mod = $slurp_mod;
-               $slurp_mod =~ s/^ +//gm;
-               $answer_matched = ($slurp_mod eq $answer_mod);
-            }
-
-            # VMS port not handling POSIX encoded child status
-            # Translate error case it for now.
-            if (!$answer_matched) {
-              $slurp_mod =~ s/0x1035a00a/1/gim;
-              $answer_matched = 1 if $slurp_mod =~ /\Q$answer_mod\E/i;
-
-            }
-            if (!$answer_matched) {
-              $slurp_mod =~ s/0x1035a012/2/gim;
-              $answer_matched = ($slurp_mod eq $answer_mod);
-            }
-
-            # Tests are using a UNIX null command, temp hack
-            # until this can be handled by the VMS port.
-            # ticket # 41761
-            if (!$answer_matched) {
-              $slurp_mod =~ s/^.+DCL-W-NOCOMD.*$//gim;
-              $slurp_mod =~ s/\n\n+/\n/gm;
-              $slurp_mod =~ s/^\n+//gm;
-              $answer_matched = ($slurp_mod eq $answer_mod);
-            }
-            # Tests are using exit 0;
-            # this generates a warning that should stop the make, but does not
-            if (!$answer_matched) {
-              $slurp_mod =~ s/^.+NONAME-W-NOMSG.*$//gim;
-              $slurp_mod =~ s/\n\n+/\n/gm;
-              $slurp_mod =~ s/^\n+//gm;
-              $answer_matched = ($slurp_mod eq $answer_mod);
-            }
-
-            # VMS is sometimes adding single quotes to output?
-            if (!$answer_matched) {
-              my $noq_slurp_mod = $slurp_mod;
-              $noq_slurp_mod =~ s/\'//gm;
-              $answer_matched = ($noq_slurp_mod eq $answer_mod);
-
-              # And missing an extra space in output
-              if (!$answer_matched) {
-                $noq_answer_mod = $answer_mod;
-                $noq_answer_mod =~ s/\h\h+/ /gm;
-                $answer_matched = ($noq_slurp_mod eq $noq_answer_mod);
-              }
-
-              # VMS adding ; to end of some lines.
-              if (!$answer_matched) {
-                $noq_slurp_mod =~ s/;\n/\n/gm;
-                $answer_matched = ($noq_slurp_mod eq $noq_answer_mod);
-              }
-
-              # VMS adding trailing space to end of some quoted lines.
-              if (!$answer_matched) {
-                $noq_slurp_mod =~ s/\h+\n/\n/gm;
-                $answer_matched = ($noq_slurp_mod eq $noq_answer_mod);
-              }
-
-              # And VMS missing leading blank line
-              if (!$answer_matched) {
-                $noq_answer_mod =~ s/\A\n//g;
-                $answer_matched = ($noq_slurp_mod eq $noq_answer_mod);
-              }
-
-              # Unix double quotes showing up as single quotes on VMS.
-              if (!$answer_matched) {
-                $noq_answer_mod =~ s/\"//g;
-                $answer_matched = ($noq_slurp_mod eq $noq_answer_mod);
-              }
-            }
+          # VMS has extra blank lines in output sometimes.
+          # Ticket #41760
+          if (!$answer_matched)
+          {
+            $slurp_mod =~ s/\n\n+/\n/gm;
+            $slurp_mod =~ s/\A\n+//g;
+            $answer_matched = ($slurp_mod eq $answer_mod);
           }
 
-          # If it still doesn't match, see if the answer might be a regex.
-          if (!$answer_matched && $answer =~ m,^/(.+)/$,) {
-              $answer_matched = ($slurp =~ /$1/);
-              if (!$answer_matched && $answer_mod =~ m,^/(.+)/$,) {
-                  $answer_matched = ($slurp_mod =~ /$1/);
-              }
+          # VMS adding a "Waiting for unfinished jobs..."
+          # Remove it for now to see what else is going on.
+          if (!$answer_matched)
+          {
+            $slurp_mod =~ s/^.+\*\*\* Waiting for unfinished jobs.+$//m;
+            $slurp_mod =~ s/\n\n/\n/gm;
+            $slurp_mod =~ s/^\n+//gm;
+            $answer_matched = ($slurp_mod eq $answer_mod);
           }
+
+          # VMS wants target device to exist or generates an error,
+          # Some test tagets look like VMS devices and trip this.
+          if (!$answer_matched)
+          {
+            $slurp_mod =~ s/^.+\: no such device or address.*$//gim;
+            $slurp_mod =~ s/\n\n/\n/gm;
+            $slurp_mod =~ s/^\n+//gm;
+            $answer_matched = ($slurp_mod eq $answer_mod);
+          }
+
+          # VMS error message has a different case
+          if (!$answer_matched)
+          {
+            $slurp_mod =~ s/no such file /No such file /gm;
+            $answer_matched = ($slurp_mod eq $answer_mod);
+          }
+
+          # VMS is putting comas instead of spaces in output
+          if (!$answer_matched)
+          {
+            $slurp_mod =~ s/,/ /gm;
+            $answer_matched = ($slurp_mod eq $answer_mod);
+          }
+
+          # VMS Is sometimes adding extra leading spaces to output?
+          if (!$answer_matched)
+          {
+            my $slurp_mod = $slurp_mod;
+            $slurp_mod =~ s/^ +//gm;
+            $answer_matched = ($slurp_mod eq $answer_mod);
+          }
+
+          # VMS port not handling POSIX encoded child status
+          # Translate error case it for now.
+          if (!$answer_matched)
+          {
+            $slurp_mod =~ s/0x1035a00a/1/gim;
+            $answer_matched = 1 if $slurp_mod =~ /\Q$answer_mod\E/i;
+
+          }
+          if (!$answer_matched)
+          {
+            $slurp_mod =~ s/0x1035a012/2/gim;
+            $answer_matched = ($slurp_mod eq $answer_mod);
+          }
+
+          # Tests are using a UNIX null command, temp hack
+          # until this can be handled by the VMS port.
+          # ticket # 41761
+          if (!$answer_matched)
+          {
+            $slurp_mod =~ s/^.+DCL-W-NOCOMD.*$//gim;
+            $slurp_mod =~ s/\n\n+/\n/gm;
+            $slurp_mod =~ s/^\n+//gm;
+            $answer_matched = ($slurp_mod eq $answer_mod);
+          }
+          # Tests are using exit 0;
+          # this generates a warning that should stop the make, but does not
+          if (!$answer_matched)
+          {
+            $slurp_mod =~ s/^.+NONAME-W-NOMSG.*$//gim;
+            $slurp_mod =~ s/\n\n+/\n/gm;
+            $slurp_mod =~ s/^\n+//gm;
+            $answer_matched = ($slurp_mod eq $answer_mod);
+          }
+
+          # VMS is sometimes adding single quotes to output?
+          if (!$answer_matched)
+          {
+            my $noq_slurp_mod = $slurp_mod;
+            $noq_slurp_mod =~ s/\'//gm;
+            $answer_matched = ($noq_slurp_mod eq $answer_mod);
+
+            # And missing an extra space in output
+            if (!$answer_matched)
+            {
+              $noq_answer_mod = $answer_mod;
+              $noq_answer_mod =~ s/\h\h+/ /gm;
+              $answer_matched = ($noq_slurp_mod eq $noq_answer_mod);
+            }
+
+            # VMS adding ; to end of some lines.
+            if (!$answer_matched)
+            {
+              $noq_slurp_mod =~ s/;\n/\n/gm;
+              $answer_matched = ($noq_slurp_mod eq $noq_answer_mod);
+            }
+
+            # VMS adding trailing space to end of some quoted lines.
+            if (!$answer_matched)
+            {
+              $noq_slurp_mod =~ s/\h+\n/\n/gm;
+              $answer_matched = ($noq_slurp_mod eq $noq_answer_mod);
+            }
+
+            # And VMS missing leading blank line
+            if (!$answer_matched)
+            {
+              $noq_answer_mod =~ s/\A\n//g;
+              $answer_matched = ($noq_slurp_mod eq $noq_answer_mod);
+            }
+
+            # Unix double quotes showing up as single quotes on VMS.
+            if (!$answer_matched)
+            {
+              $noq_answer_mod =~ s/\"//g;
+              $answer_matched = ($noq_slurp_mod eq $noq_answer_mod);
+            }
+          }
+        }
+
+        # If it still doesn't match, see if the answer might be a regex.
+        if (!$answer_matched && $answer1 =~ m,^/(.+)/$,)
+        {
+          $answer_matched = ($slurp =~ /$1/);
+          if (!$answer_matched && $answer_mod =~ m,^/(.+)/$,)
+          {
+            $answer_matched = ($slurp_mod =~ /$1/);
+          }
+        }
       }
   }
 
@@ -976,13 +1077,19 @@ sub compare_output
   {
     print "ok\n" if $debug;
     ++$tests_passed;
+
+    if ($xml)
+    {
+      undef $xml_answer;
+    }
+
     return 1;
   }
 
   if (! $answer_matched) {
     print "DIFFERENT OUTPUT\n" if $debug;
 
-    &create_file (&get_basefile, $answer);
+    &create_file (&get_basefile, $answer1);
     &create_file (&get_runfile, $command_string);
 
     print "\nCreating Difference File ...\n" if $debug;
@@ -991,6 +1098,25 @@ sub compare_output
 
     local($command) = "diff -c " . &get_basefile . " " . $logfile;
     &run_command_with_output(&get_difffile,$command);
+
+    # And answer file
+    $afile = &get_ansfile;
+    print "\nCreating Answer File $afile ...\n" if $debug;
+    if (! open(ANS, ">", $afile))
+    {
+      $DB::single = 1;
+      print "Can't open $afile for writing: $!\n"
+    } else
+    {
+      print ANS $slurp;
+      close ANS;
+    }
+
+    if ($stop_on_error)
+    {
+      print "Stopping on error ...\n";
+      exit 1;
+    }
   }
 
   return 0;
@@ -1559,6 +1685,11 @@ sub get_basefile
 sub get_difffile
 {
   return ($diff_filename . &num_suffix ($num_of_logfiles));
+}
+
+sub get_ansfile
+{
+  return ($ans_filename . &num_suffix ($num_of_logfiles));
 }
 
 # This subroutine returns a command filename with a number appended

@@ -13,6 +13,8 @@ test echo's all files which match '?.example' and
 [a-z0-9].example.  Lastly we clean up all of the files using
 the '*' wildcard as in the first test";
 
+$xml and return -1;
+
 open(MAKEFILE,"> $makefile");
 
 # The Contents of the MAKEFILE ...

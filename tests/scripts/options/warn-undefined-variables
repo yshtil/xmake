@@ -1,4 +1,5 @@
 #                                                                    -*-perl-*-
+$xml && return -1;
 
 $description = "Test the --warn-undefined-variables option.";
 

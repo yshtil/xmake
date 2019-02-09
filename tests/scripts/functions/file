@@ -1,6 +1,7 @@
 #                                                                    -*-perl-*-
 
 $description = 'Test the $(file ...) function.';
+$xml and return -1;
 
 # Test > and >>
 run_make_test(q!

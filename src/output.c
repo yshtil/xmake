@@ -40,6 +40,14 @@ this program.  If not, see <http://www.gnu.org/licenses/>.  */
 # include "sub_proc.h"
 #endif /* WINDOWS32 */
 
+#ifdef XML
+#include "filedef.h"
+#include "xmldef.h"
+extern char **xml_flag;
+extern floc *current_floc;
+extern unsigned char nonfatal_error;
+#endif
+
 struct output *output_context = NULL;
 unsigned int stdio_traced = 0;
 
@@ -57,6 +65,12 @@ unsigned int stdio_traced = 0;
 static void
 _outputs (struct output *out, int is_err, const char *msg)
 {
+#ifdef XML
+  if (xml_flag) {
+    if (is_err)
+      xml_error(msg);
+  } else
+#endif
   if (! out || ! out->syncout)
     {
       FILE *f = is_err ? stderr : stdout;
@@ -527,7 +541,10 @@ outputs (int is_err, const char *msg)
   if (! msg || *msg == '\0')
     return;
 
-  output_start ();
+#ifdef XML
+  if (!xml_flag)
+#endif
+    output_start ();
 
   _outputs (output_context, is_err, msg);
 }
@@ -623,12 +640,28 @@ fatal (const floc *flocp, size_t len, const char *fmt, ...)
   va_list args;
   const char *stop = _(".  Stop.\n");
   char *p;
+#ifdef XML
+  if (xml_flag)
+    stop = "";
+#endif
 
+#ifdef XML
+  if (xml_flag)
+    {
+      len += strlen (fmt) + INTSTR_LENGTH + 8 + strlen (stop) + 3;
+      current_floc = (floc *)flocp;
+    }
+  else
+#endif
   len += (strlen (fmt) + strlen (program)
           + (flocp && flocp->filenm ? strlen (flocp->filenm) : 0)
           + INTSTR_LENGTH + 8 + strlen (stop) + 1);
   p = get_buffer (len);
 
+#ifdef XML
+  if (!xml_flag)
+    {
+#endif
   if (flocp && flocp->filenm)
     sprintf (p, "%s:%lu: *** ", flocp->filenm, flocp->lineno + flocp->offset);
   else if (makelevel == 0)
@@ -636,6 +669,9 @@ fatal (const floc *flocp, size_t len, const char *fmt, ...)
   else
     sprintf (p, "%s[%u]: *** ", program, makelevel);
   p += strlen (p);
+#ifdef XML
+  }
+#endif
 
   va_start (args, fmt);
   vsprintf (p, fmt, args);

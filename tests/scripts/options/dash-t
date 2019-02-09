@@ -4,6 +4,7 @@ $description = "Test the -t option.\n";
 
 $details = "Look out for regressions of prior bugs related to -t.\n";
 # That means, nobody has even tried to make the tests below comprehensive
+$xml && return -1;
 
 # TEST 0
 # bug reported by Henning Makholm <henning@makholm.net> on 2001-11-03:

@@ -2,6 +2,7 @@
 $description = "Test the -q option.\n";
 
 $details = "Try various uses of -q and ensure they all give the correct results.\n";
+$xml && return -1;
 
 # TEST 0
 

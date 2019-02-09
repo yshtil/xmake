@@ -1,5 +1,7 @@
 #								     -*-perl-*-
 
+$xml and return -1;
+
 $description = "Test proper behavior of the MAKE variable";
 
 $details = "DETAILS";

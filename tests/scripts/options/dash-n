@@ -3,6 +3,8 @@ $description = "Test the -n option.\n";
 
 $details = "Try various uses of -n and ensure they all give the correct results.\n";
 
+$xml && return -1;
+
 touch('orig');
 
 run_make_test(q!

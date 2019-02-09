@@ -29,19 +29,19 @@ EOF
 close(MAKEFILE);
 
 
-@files_to_touch = ("$workdir${pathsep}main.c","$workdir${pathsep}defs.h",
+$xml_init_cmd = qq!mkdir("$workdir");\@files_to_touch = ("$workdir${pathsep}main.c","$workdir${pathsep}defs.h",
                "$workdir${pathsep}kbd.c","$workdir${pathsep}command.h",
                "$workdir${pathsep}commands.c","$workdir${pathsep}display.c",
                "$workdir${pathsep}buffer.h","$workdir${pathsep}insert.c",
 	       "$workdir${pathsep}command.c");
 
-&touch(@files_to_touch);
-
-&run_make_with_options($makefile,"",&get_logfile);
+&touch(\@files_to_touch);!;
 
 # Create the answer to what should be produced by this Makefile
 $answer = "cc -c main.c\ncc -c kbd.c\ncc -c commands.c\ncc -c display.c
 cc -c insert.c\ncc -o edit main.o kbd.o commands.o display.o insert.o\n";
+
+&run_make_with_options($makefile,"",&get_logfile);
 
 if (&compare_output($answer,&get_logfile(1))) {
   unlink @files_to_touch;

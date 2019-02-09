@@ -1,6 +1,8 @@
 #                                                                    -*-perl-*-
 $description = "Test the .INCLUDE_DIRS special variable.";
 
+$xml and return -1;
+
 $details = "";
 
 use Cwd;

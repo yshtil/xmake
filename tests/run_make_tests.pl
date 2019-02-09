@@ -8,6 +8,8 @@
 #                         [-help]
 #                         [-verbose]
 #                         [-keep]
+#                         [-xml]
+#                         [-stop]
 #                         [-make <make prog>]
 #                        (and others)
 
@@ -69,6 +71,11 @@ if ($^O eq 'VMS')
 
 use FindBin;
 use lib "$FindBin::Bin";
+use File::Copy;
+use File::Temp qw/ tempfile/;
+use Storable;
+use Carp qw/confess/;
+use Text::Shellwords;
 
 require "test_driver.pl";
 
@@ -127,6 +134,26 @@ sub valid_option
        return 1;
    }
 
+   if ($option =~ /^-xml$/i)
+   {
+     # Test if required modules are present
+     my (@bad, @msg);
+     foreach my $mod (qw/XML::XPath/)
+     {
+       eval "use $mod;";
+       push(@msg, $@) if $@;
+       push(@bad, $mod) if $@;
+     }
+     if (@bad)
+     {
+       print "The following Perl modules are required for -xml option:@mod:\n";
+       print @msg;
+       exit 0;
+     }
+     $xml = 1;
+     return 1;
+   }
+
 # This doesn't work--it _should_!  Someone badly needs to fix this.
 #
 #   elsif ($option =~ /^-work([-_]?dir)?$/)
@@ -134,6 +161,12 @@ sub valid_option
 #      $workdir = shift @argv;
 #      return 1;
 #   }
+
+   if ($option =~ /^-stop$/i)
+   {
+     $stop_on_error = 1;
+     return 1;
+   }
 
    return 0;
 }
@@ -167,6 +200,10 @@ sub run_make_test
   # If the user specified a makefile string, create a new makefile to contain
   # it.  If the first value is not defined, use the last one (if there is
   # one).
+
+  confess '$answer undefined' if $xml && !defined($answer);
+
+  $orig_answer = $answer;
 
   if (! defined $makestring) {
     defined $old_makefile
@@ -229,6 +266,13 @@ sub run_make_with_options {
   my ($filename,$options,$logname,$expected_code,$timeout,@call) = @_;
   @call = caller unless @call;
   my $code;
+
+  confess '$answer undefined' if $xml && !defined($answer);
+  $orig_answer = $answer;
+  eval $xml_init_cmd if $xml_init_cmd;
+
+  undef $xml_init_cmd if !$xml;
+
   my $command = create_command($options);
 
   $expected_code = 0 unless defined($expected_code);
@@ -240,6 +284,7 @@ sub run_make_with_options {
     $command = add_options($command, '-f', $filename);
   }
 
+  my $c_dir = '';
   if ($options) {
     if (!ref($options) && $^O eq 'VMS') {
       # Try to make sure arguments are properly quoted.
@@ -275,8 +320,21 @@ sub run_make_with_options {
       $options =~ s/"--eval=\$\(info" "eval/"--eval=\$\(info eval/;
 
       print ("Options fixup = -$options-\n") if $debug;
+
     }
 
+    my @args = shellwords($options);
+
+    while (my $a = shift @args)
+    {
+      if ($a eq '-C')           # Assume single options, no tests are for multiple -C
+      {
+        $c_dir = shift @args;
+        last;
+      }
+    }
+
+    $c_dir = "$c_dir/" if $c_dir ne '';
     $command = add_options($command, $options);
   }
 
@@ -299,6 +357,7 @@ sub run_make_with_options {
       # If valgrind is enabled, turn off the timeout check
       $valgrind and $test_timeout = 0;
 
+#      $DB::single = 1;
       if (ref($command)) {
           $code = run_command_with_output($logname, @$command);
       } else {
@@ -335,12 +394,96 @@ sub run_make_with_options {
       print STDERR "\nCaught signal ".($code & 127)."!\n";
       ($code & 127) == 2 and exit($code);
     }
+    undef $xml_post_check;
+    if ($stop_on_error)
+    {
+      return 1;
+    }
+
     return 0;
   }
 
   if ($profile & $vos) {
     system "add_profile $make_path";
   }
+
+  eval $xml_post_check if $xml_post_check;
+
+  if ($xml)
+  {
+    my %stor_data;
+    $stor_data{status} = $code;
+    $stor_data{answer} = $orig_answer;
+
+    # Run again
+    $old_e_code = $e_code;
+    $command = add_options($command, '-x', '-');
+
+    if (!defined $filename || $filename !~ /\S/)
+    {
+      # See what is available
+      foreach my $f (qw/GNUmakefile makefile Makefile/)
+      {
+        if (-e $f)
+        {
+          $filename = $f;
+          last;
+        }
+      }
+    }
+
+    my $make_code = `cat $c_dir$filename`;
+    $stor_data{xmlgen_command} = ref($command) ? \@$command : $command;;
+    # Remove extra quotes if needed
+    $stor_data{makecode} = $make_code;
+    $stor_data{post_check} = $xml_post_check if $xml_post_check;
+    undef $xml_post_check;
+    
+    if (defined $xml_init_cmd)
+    {
+      if (!$do_not_eval_init)
+      {
+        eval $xml_init_cmd;
+      }
+      undef $do_not_eval_init;
+
+      # Hack
+      $xml_init_cmd =~ s/extraENV/ENV/;
+    
+      $stor_data{init_code} = $xml_init_cmd;
+    }
+    
+#    $DB::single = 1;
+    $logname =~ s!^$workpath!$workpath/xml!;
+
+    my $subst = $log_ind ? ".$log_ind" : '';
+    $log_ind++;
+    $logname =~ s!\.log\.?.*$!$subst.storable!;
+
+    if ($xml_skip)
+    {
+      $stor_data{skip} = 1;
+      store \%stor_data, $logname;
+    } else
+    {
+      if (ref($command))
+      {
+        $code = run_command_with_output($logname, @$command);
+      } else
+      {
+        $code = run_command_with_output($logname, $command);
+      }
+
+      $stor_data{xml} = `cat $logname`;
+
+      store \%stor_data, $logname;
+    }
+
+    undef $xml_init_cmd;
+    undef $xml_skip;
+  }
+
+  undef $xml_post_check;
 
   return 1;
 }

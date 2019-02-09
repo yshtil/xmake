@@ -6,6 +6,8 @@ $details = "These tests are ones that specifically are different when the
 jobserver feature is available.  Most -j tests are the same whether or not
 jobserver is available, and those appear in the 'parallelism' test suite.";
 
+$xml and return -1;
+
 exists $FEATURES{'jobserver'} or return -1;
 
 if (!$parallel_jobs) {

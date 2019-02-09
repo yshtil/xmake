@@ -298,7 +298,6 @@ jobserver_acquire (int timeout)
             /* Someone closed the jobs pipe.
                That shouldn't happen but if it does we're done.  */
               O (fatal, NILF, _("job server shut down"));
-
           default:
             pfatal_with_name (_("pselect jobs pipe"));
           }

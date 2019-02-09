@@ -5,6 +5,8 @@ $details = "\
 Create makefiles with various combinations of normal and order-only
 prerequisites and ensure they behave properly.  Test the \$| variable.";
 
+$xml and return -1;
+
 # TEST #0 -- Basics
 
 run_make_test('

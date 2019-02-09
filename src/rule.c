@@ -25,6 +25,10 @@ this program.  If not, see <http://www.gnu.org/licenses/>.  */
 #include "variable.h"
 #include "rule.h"
 
+#ifdef XML
+extern char **xml_flag;
+#endif
+
 static void freerule (struct rule *rule, struct rule *lastrule);
 
 /* Chain of all pattern rules.  */
@@ -384,6 +388,11 @@ install_pattern_rule (struct pspec *p, int terminal)
       r->cmds->fileinfo.filenm = 0;
       r->cmds->fileinfo.lineno = 0;
       r->cmds->fileinfo.offset = 0;
+#ifdef XML
+      if (xml_flag)
+        r->cmds->xmake_recurse = 0;
+#endif
+      
       /* These will all be string literals, but we malloc space for them
          anyway because somebody might want to free them later.  */
       r->cmds->commands = xstrdup (p->commands);

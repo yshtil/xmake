@@ -41,13 +41,12 @@ FOO= BAR= BAZ=baz BOZ=boz BITZ=bitz BOTZ=\n");
 
 # TEST 1: make sure vars inherited from the parent are exported
 
-$extraENV{FOO} = 1;
+$xml_init_cmd = q!$extraENV{FOO} = 1;!;
 
 &run_make_test(undef, '', "FOO=foo BAR=bar BAZ=baz BOZ=boz BITZ=bitz BOTZ=botz
 FOO=foo BAR= BAZ=baz BOZ=boz BITZ=bitz BOTZ=\n");
 
 # TEST 2: global export.  Explicit unexport takes precedence.
-
 run_make_test(undef, "EXPORT_ALL=1" ,
               "FOO=foo BAR=bar BAZ=baz BOZ=boz BITZ=bitz BOTZ=botz
 FOO=foo BAR=bar BAZ=baz BOZ=boz BITZ=bitz BOTZ=\n");
@@ -140,7 +139,7 @@ all: ; @echo A=$$A B=$$B C=$$C D=$$D E=$$E F=$$F G=$$G H=$$H I=$$I J=$$J
 
 # TEST 8: Test unexporting multiple variables on the same line
 
-@extraENV{qw(A B C D E F G H I J)} = qw(1 2 3 4 5 6 7 8 9 10);
+$xml_init_cmd = '@extraENV{qw(A B C D E F G H I J)} = qw(1 2 3 4 5 6 7 8 9 10);';
 
 &run_make_test('
 A = a

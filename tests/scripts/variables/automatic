@@ -6,8 +6,11 @@ $details = "";
 
 use Cwd;
 
+$DB::single = 1;
+use Cwd;
+no strict;
 $dir = cwd;
-$dir =~ s,.*/([^/]+)$,../$1,;
+$dir =~ s,.*/([^/]+)$,../$1,;;
 
 open(MAKEFILE, "> $makefile");
 print MAKEFILE "dir = $dir\n";
@@ -31,9 +34,8 @@ close(MAKEFILE);
 # -------
 
 # Touch these into the past
-&utouch(-10, qw(foo.x baz.z));
+$xml_init_cmd = q!&utouch(-10, qw(foo.x baz.z));!;
 
-&run_make_with_options($makefile, "", &get_logfile);
 $answer = "touch $dir/bar.y
 \$\@ = $dir/foo.x, \$(\@D) = $dir, \$(\@F) = foo.x
 \$* = $dir/foo, \$(*D) = $dir, \$(*F) = foo
@@ -42,9 +44,12 @@ $answer = "touch $dir/bar.y
 \$+ = baz.z $dir/bar.y baz.z, \$(+D) = . $dir ., \$(+F) = baz.z bar.y baz.z
 \$? = $dir/bar.y, \$(?D) = $dir, \$(?F) = bar.y
 touch $dir/foo.x\n";
+
+$xml_skip = 1;                  # Suffixes are not handled properly by -x
+&run_make_with_options($makefile, "", &get_logfile);
 &compare_output($answer, &get_logfile(1));
 
-unlink(qw(foo.x bar.y baz.z));
+$xml_init_cmd = q!unlink(qw(foo.x bar.y baz.z));!;
 
 # TEST #1 -- test the SysV emulation of $$@ etc.
 # -------
@@ -67,16 +72,16 @@ EOF
 
 close(MAKEFILE);
 
-&run_make_with_options($makefile2, "$dir/foo $dir/bar", &get_logfile);
 $answer = ".x\n$dir/foo.x\nx\n\$@.x\n$dir.x\nfoo.x\n$dir/bar.x\nbar.x\n";
+&run_make_with_options($makefile2, "$dir/foo $dir/bar", &get_logfile);
 &compare_output($answer, &get_logfile(1));
 
-&run_make_with_options($makefile2, "$dir/x.z $dir/y.z", &get_logfile);
 $answer = ".x\n$dir/x.z.x\nx\n\$@.x\n$dir.x\nx.z.x\n.y\n$dir/y.z.y\n\y\n\$@.y\n$dir.y\ny.z.y\n";
+&run_make_with_options($makefile2, "$dir/x.z $dir/y.z", &get_logfile);
 &compare_output($answer, &get_logfile(1));
 
-&run_make_with_options($makefile2, "$dir/biz", &get_logfile);
 $answer = "$dir/biz.x\n$dir.x\nbiz.x\n";
+&run_make_with_options($makefile2, "$dir/biz", &get_logfile);
 &compare_output($answer, &get_logfile(1));
 
 # TEST #2 -- test for Savannah bug #12320.
@@ -97,7 +102,7 @@ mbr.src: ; @:',
 #
 # See also Savannah bugs #16002 and #16051.
 
-touch('foo');
+$xml_init_cmd = q!touch('foo');!;
 
 run_make_test('
 foo: bar ; @echo "\$$? = $?"
@@ -105,7 +110,7 @@ bar: ;',
               '',
               '$? = bar');
 
-unlink('foo');
+$xml_init_cmd = q!unlink('foo');!;
 
 # TEST #4: ensure prereq ordering is correct when the commmand target has none
 # See Savannah bug #21198

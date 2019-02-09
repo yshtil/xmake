@@ -25,6 +25,11 @@ this program.  If not, see <http://www.gnu.org/licenses/>.  */
 #include "w32err.h"
 #endif
 
+#ifdef XML
+extern char **xml_flag;
+extern struct file *new_job_file;
+#endif
+
 #if VMS
 # define FILE_LIST_SEPARATOR (vms_comma_separator ? ',' : ' ')
 #else
@@ -473,7 +478,15 @@ execute_file_commands (struct file *file)
     unload_file (file->name);
 
   /* Start the commands running.  */
+#ifdef XML
+  if (xml_flag)
+    new_job_file = file;
+#endif
   new_job (file);
+#ifdef XML
+  if (xml_flag)
+    new_job_file = NULL;
+#endif
 }
 
 /* This is set while we are inside fatal_error_signal,

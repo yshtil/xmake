@@ -2,6 +2,8 @@
 
 $description = "Test various forms of the GNU make 'include' command.";
 
+$xml and return -1;
+
 $details = "\
 Test include, -include, sinclude and various regressions involving them.
 Test extra whitespace at the end of the include, multiple -includes and

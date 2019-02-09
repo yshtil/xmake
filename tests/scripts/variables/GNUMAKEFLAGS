@@ -5,7 +5,7 @@ $description = "Test proper behavior of GNUMAKEFLAGS";
 # Accept flags from GNUMAKEFLAGS as well as MAKEFLAGS
 # Results always go in MAKEFLAGS
 
-$extraENV{'GNUMAKEFLAGS'} = '-e -r -R';
+$xml_init_cmd = q!$extraENV{'GNUMAKEFLAGS'} = '-e -r -R';!;
 
 run_make_test(q!
 all: ; @echo $(MAKEFLAGS)
@@ -14,8 +14,9 @@ all: ; @echo $(MAKEFLAGS)
 
 # Long arguments mean everything is prefixed with "-"
 
-$extraENV{'GNUMAKEFLAGS'} = '--no-print-directory -e -r -R --trace';
+$xml_init_cmd = q!$extraENV{'GNUMAKEFLAGS'} = '--no-print-directory -e -r -R --trace';!;
 
+$xml_skip = 1;
 run_make_test(q!
 all: ; @echo $(MAKEFLAGS)
 !,
@@ -25,9 +26,11 @@ erR --trace --no-print-directory");
 
 # Verify that re-exec / recursion doesn't duplicate flags from GNUMAKEFLAGS
 
-unlink('x.mk');
+$xml_init_cmd = q!unlink('x.mk');
 
-$extraENV{GNUMAKEFLAGS} = '-Itst/bad';
+$extraENV{GNUMAKEFLAGS} = '-Itst/bad';!;
+
+$xml_skip = 1;
 
 run_make_test(q!
 recurse: ; @echo $@; echo MAKEFLAGS = $$MAKEFLAGS; echo GNUMAKEFLAGS = $$GNUMAKEFLAGS; #MAKEPATH# -f #MAKEFILE# all

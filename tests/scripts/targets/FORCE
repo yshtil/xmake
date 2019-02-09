@@ -5,7 +5,8 @@ $description = "The following tests rules without Commands or Dependencies.";
 # Create a file named "clean".  This is the same name as the target clean
 # and tricks the target into thinking that it is up to date.  (Unless you
 # use the .PHONY target.
-touch('clean');
+$xml_init_cmd = q!touch('clean');!;
+$xml_post_check = q!rmfiles('clean');return 1!;
 
 run_make_test(qq!
 .IGNORE :
@@ -14,6 +15,5 @@ FORCE:
 !,
               '', "$CMD_rmfile clean");
 
-rmfiles('clean');
 
 1;

@@ -50,7 +50,7 @@ all: ; @echo "<$(VAR3)>"
 
 # TEST 3: Overrides invoke shell anyway; they just don't store the result
 # in a way that is visible.
-
+$xml_skip = 1;
 run_make_test('
 
 override != echo abc > ,abc ; cat ,abc

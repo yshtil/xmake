@@ -2,6 +2,8 @@
 
 $description = "Test the -C option to GNU make.";
 
+return -1 if $xml;
+
 $details = "\
 This test is similar to the clean test except that this test creates the file
 to delete in the work directory instead of the current directory.  Make is
@@ -19,23 +21,23 @@ close(MAKEFILE);
 
 # TEST #1
 # -------
-touch($example);
-
-run_make_with_options("${testname}.mk", "-C $workdir clean", &get_logfile);
+$xml_init_cmd = qq!touch("$example");!;
+$do_not_eval_init = 1;
 
 chdir $workdir;
 $wpath = &get_this_pwd;
 chdir $pwd;
-
-if (-f $example) {
-  $test_passed = 0;
-}
 
 # Create the answer to what should be produced by this Makefile
 $answer = "$make_name: Entering directory '$wpath'\n"
         . "$CMD_rmfile EXAMPLE\n"
         . "$make_name: Leaving directory '$wpath'\n";
 
+$xml_post_check = qq!if (-f "$example") {
+  \$test_passed = 0;
+} else {1}!;
+
+run_make_with_options("${testname}.mk", "-C $workdir clean", &get_logfile);
 compare_output($answer,&get_logfile(1));
 
 
@@ -45,22 +47,24 @@ compare_output($answer,&get_logfile(1));
 
 $example .= "slash";
 
-touch($example);
-
-run_make_with_options("${testname}.mk", "-C $workdir/ clean ext=slash", &get_logfile);
+$xml_init_cmd = qq!touch("$example");!;
+$do_not_eval_init = 1;
 
 chdir $workdir;
 $wpath = &get_this_pwd;
 chdir $pwd;
 
-if (-f $example) {
-  $test_passed = 0;
-}
-
 # Create the answer to what should be produced by this Makefile
 $answer = "$make_name: Entering directory '$wpath'\n"
         . "$CMD_rmfile EXAMPLEslash\n"
         . "$make_name: Leaving directory '$wpath'\n";
+
+
+$xml_post_check = qq!if (-f "$example") {
+  \$test_passed = 0;
+} else {1}!;
+
+run_make_with_options("${testname}.mk", "-C $workdir/ clean ext=slash", &get_logfile);
 
 &compare_output($answer,&get_logfile(1));
 

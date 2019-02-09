@@ -1,5 +1,7 @@
 #                                                                    -*-perl-*-
 
+$xml && return -1;
+
 $description = "Test the -L option.";
 
 $details = "Verify that symlink handling with and without -L works properly.";

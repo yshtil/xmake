@@ -1,3 +1,5 @@
+$xml && return -1;
+
 $description = "The following test creates a makefile to override part\n"
               ."of one Makefile with Another Makefile with the .DEFAULT\n"
               ."rule.";
@@ -32,12 +34,12 @@ print MAKEFILE "\t\@echo Executing rule BAR\n\n";
 
 close(MAKEFILE);
 
-&run_make_with_options($makefile,'bar',&get_logfile);
-
 # Create the answer to what should be produced by this Makefile
 $answer = "${make_name}[1]: Entering directory '$pwd'\n"
         . "Executing rule BAR\n"
         . "${make_name}[1]: Leaving directory '$pwd'\n";
+
+&run_make_with_options($makefile,'bar',&get_logfile);
 
 # COMPARE RESULTS
 

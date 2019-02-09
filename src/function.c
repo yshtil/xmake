@@ -27,6 +27,11 @@ this program.  If not, see <http://www.gnu.org/licenses/>.  */
 #include "amiga.h"
 #endif
 
+#ifdef XML
+#include "xmldef.h"
+extern char **xml_flag;
+struct file *new_job_file;
+#endif
 
 struct function_table_entry
   {
@@ -1139,14 +1144,31 @@ func_error (char *o, char **argv, const char *funcname)
     {
     case 'e':
       OS (fatal, reading_file, "%s", msg);
-
+#ifdef XML
+      break;
+#endif
     case 'w':
+#ifdef XML
+      if (xml_flag)     
+        xml_add_warning(msg, new_job_file);
+      else
+#endif
       OS (error, reading_file, "%s", msg);
       break;
 
     case 'i':
-      outputs (0, msg);
-      outputs (0, "\n");
+#ifdef XML
+      if (xml_flag)     
+        xml_add_info(msg);
+      else
+      {
+        outputs (0, msg);
+        outputs (0, "\n");
+      }
+#else
+        outputs (0, msg);
+        outputs (0, "\n");
+#endif
       break;
 
     default:

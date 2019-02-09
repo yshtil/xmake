@@ -8,6 +8,8 @@ Invoke make once, so it builds everything.  Invoke it again and verify
 that nothing is built.  Then invoke it with -B and verify that everything
 is built again.";
 
+return -1 if $xml;
+
 &touch('bar.x');
 
 run_make_test('

@@ -52,6 +52,7 @@ if (-f $example) {
 # TEST #3
 # -------
 
+$xml_skip = 1;
 run_make_test(undef, '-n clean', "$CMD_rmfile $example\n");
 
 

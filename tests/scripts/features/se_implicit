@@ -225,6 +225,7 @@ foo.o:
 # Test #10: Test second expansion with second expansion prerequisites
 # Ensures pattern_search() recurses with SE prereqs.
 touch('a');
+$xml_skip = 1;
 run_make_test(q!
 .SECONDEXPANSION:
 sim_base_rgg := just_a_name

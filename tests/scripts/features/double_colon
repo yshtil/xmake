@@ -1,6 +1,8 @@
 #                                                                    -*-perl-*-
 $description = "Test handling of double-colon rules.";
 
+return -1 if $xml;
+
 $details = "\
 We test these features:
 
@@ -13,7 +15,6 @@ Then we do the same thing for parallel builds: double-colon
 targets should always be built serially.";
 
 # The Contents of the MAKEFILE ...
-
 open(MAKEFILE,"> $makefile");
 
 print MAKEFILE <<'EOF';
@@ -45,73 +46,74 @@ close(MAKEFILE);
 
 # TEST 0: A simple double-colon rule that isn't the goal target.
 
-&run_make_with_options($makefile, "all", &get_logfile, 0);
 $answer = "aaa\nbbb\n";
+&run_make_with_options($makefile, "all", &get_logfile, 0);
 &compare_output($answer, &get_logfile(1));
 
 # TEST 1: As above, in parallel
 
 if ($parallel_jobs) {
-  &run_make_with_options($makefile, "-j10 all", &get_logfile, 0);
   $answer = "aaa\nbbb\n";
+  &run_make_with_options($makefile, "-j10 all", &get_logfile, 0);
   &compare_output($answer, &get_logfile(1));
 }
 
 # TEST 2: A simple double-colon rule that is the goal target
 
-&run_make_with_options($makefile, "bar", &get_logfile, 0);
 $answer = "aaa\naaa done\nbbb\n";
+&run_make_with_options($makefile, "bar", &get_logfile, 0);
 &compare_output($answer, &get_logfile(1));
 
 # TEST 3: As above, in parallel
 
 if ($parallel_jobs) {
-  &run_make_with_options($makefile, "-j10 bar", &get_logfile, 0);
   $answer = "aaa\naaa done\nbbb\n";
+  &run_make_with_options($makefile, "-j10 bar", &get_logfile, 0);
   &compare_output($answer, &get_logfile(1));
 }
 
 # TEST 4: Each double-colon rule is supposed to be run individually
 
-&utouch(-5, 'f2.h');
-&touch('foo');
+$xml_init_cmd = q!&utouch(-5, 'f2.h');&touch('foo');!;
 
-&run_make_with_options($makefile, "foo", &get_logfile, 0);
 $answer = "f1.h\nfoo FIRST\n";
+&run_make_with_options($makefile, "foo", &get_logfile, 0);
 &compare_output($answer, &get_logfile(1));
 
 # TEST 5: Again, in parallel.
 
 if ($parallel_jobs) {
-  &run_make_with_options($makefile, "-j10 foo", &get_logfile, 0);
   $answer = "f1.h\nfoo FIRST\n";
+  &run_make_with_options($makefile, "-j10 foo", &get_logfile, 0);
   &compare_output($answer, &get_logfile(1));
 }
 
 # TEST 6: Each double-colon rule is supposed to be run individually
 
-&utouch(-5, 'f1.h');
+$xml_init_cmd = q!&utouch(-5, 'f1.h');
 unlink('f2.h');
-&touch('foo');
+&touch('foo');!;
 
-&run_make_with_options($makefile, "foo", &get_logfile, 0);
 $answer = "f2.h\nfoo SECOND\n";
+&run_make_with_options($makefile, "foo", &get_logfile, 0);
 &compare_output($answer, &get_logfile(1));
 
 # TEST 7: Again, in parallel.
 
 if ($parallel_jobs) {
-  &run_make_with_options($makefile, "-j10 foo", &get_logfile, 0);
   $answer = "f2.h\nfoo SECOND\n";
+  &run_make_with_options($makefile, "-j10 foo", &get_logfile, 0);
   &compare_output($answer, &get_logfile(1));
 }
 
 # TEST 8: Test circular dependency check; PR/1671
-
-&run_make_with_options($makefile, "d", &get_logfile, 0);
-$answer = "ok\n$make_name: Circular d <- d dependency dropped.\noops\n";
-&compare_output($answer, &get_logfile(1));
-
+# Skip for xml
+if (!$xml)
+{
+  $answer = "ok\n$make_name: Circular d <- d dependency dropped.\noops\n";
+  &run_make_with_options($makefile, "d", &get_logfile, 0);
+  &compare_output($answer, &get_logfile(1));
+}
 # TEST 8: I don't grok why this is different than the above, but it is...
 #
 # Hmm... further testing indicates this might be timing-dependent?
@@ -122,15 +124,12 @@ $answer = "ok\n$make_name: Circular d <- d dependency dropped.\noops\n";
 #  &compare_output($answer, &get_logfile(1));
 #}
 
-unlink('foo','f1.h','f2.h');
-
-
 # TEST 9: make sure all rules in s double colon family get executed
 #         (Savannah bug #14334).
 #
 
-&touch('one');
-&touch('two');
+$xml_init_cmd = q!unlink('foo','f1.h','f2.h');&touch('one');
+&touch('two');!;
 
 run_make_test('
 .PHONY: all
@@ -149,7 +148,7 @@ result:: two
 'one
 two');
 
-unlink('result','one','two');
+$xml_init_cmd = q!unlink('result','one','two');!;
 
 # TEST 10: SV 33399 : check for proper backslash handling
 
@@ -160,6 +159,8 @@ a\ xb :: ; @echo two
               '', "one\ntwo\n");
 
 # Test 11: SV 44742 : All double-colon rules should be run in parallel build.
+
+$xml_init_cmd = q!unlink('result', '01', '02', '03', '04', '05');!;
 
 run_make_test('result :: 01
 	@echo update
@@ -181,7 +182,7 @@ result :: 05
 ',
               '-j10 result', "update\nupdate\nupdate\nupdate\nupdate\n");
 
-unlink('result', '01', '02', '03', '04', '05');
+$xml_init_cmd = q!unlink('result', '01', '02', '03', '04', '05');!;
 
 # Test 12: SV 44742 : Double-colon rules with parallelism
 
@@ -198,6 +199,7 @@ all:: 3
               '-rs -j2 1 2 root', "all_one\nall_two\nroot\n");
 
 # SV 47995 : Parallel double-colon rules with FORCE
+$xml_init_cmd = q!unlink('joe-is-forced');!;
 
 run_make_test('
 all:: ; @echo one

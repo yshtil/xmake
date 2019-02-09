@@ -40,21 +40,21 @@ print MAKEFILE "\t\@echo cc -c insert.c\n";
 close(MAKEFILE);
 
 
-@files_to_touch = ("$workdir${pathsep}main.c","$workdir${pathsep}defs.h",
+$xml_init_cmd = qq!mkdir("$workdir");\@files_to_touch = ("$workdir${pathsep}main.c","$workdir${pathsep}defs.h",
                "$workdir${pathsep}kbd.c","$workdir${pathsep}command.h",
                "$workdir${pathsep}commands.c","$workdir${pathsep}display.c",
                "$workdir${pathsep}buffer.h","$workdir${pathsep}insert.c",
 	       "$workdir${pathsep}command.c");
 
-&touch(@files_to_touch);
-
-&run_make_with_options($makefile,"",&get_logfile);
+&touch(\@files_to_touch);!;
 
 # Create the answer to what should be produced by this Makefile
 $answer = "cc -c $workdir${pathsep}main.c\ncc -c kbd.c\ncc -c commands.c\n"
          ."cc -c display.c\n"
          ."cc -c insert.c\ncc -o edit main.o kbd.o commands.o display.o "
          ."insert.o\n";
+
+&run_make_with_options($makefile,"",&get_logfile);
 
 if (&compare_output($answer,&get_logfile(1)))
 {
@@ -64,8 +64,8 @@ if (&compare_output($answer,&get_logfile(1)))
 # TEST 2: after vpath lookup ensure we don't get incorrect circular dependency
 # warnings due to change of struct file ptr.  Savannah bug #13529.
 
-mkdir('vpath-d', 0777);
-
+$xml_init_cmd = q!rmdir('vpath-d');mkdir('vpath-d', 0777);!;
+$xml_skip = 1;
 run_make_test(q!
 vpath %.te vpath-d/
 .SECONDARY:

@@ -2,6 +2,7 @@
 $description = "Test the shared object load API.";
 
 $details = "Verify the different aspects of the shared object API.";
+$xml and return -1;
 
 # Don't do anything if this system doesn't support "load"
 exists $FEATURES{load} or return -1;

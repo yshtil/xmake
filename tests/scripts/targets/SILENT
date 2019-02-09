@@ -1,5 +1,7 @@
 #                                                                    -*-perl-*-
 
+$xml and return -1;
+
 $description = "The following tests the special target .SILENT.  By simply\n"
               ."mentioning this as a target, it tells make not to print\n"
               ."commands before executing them.";

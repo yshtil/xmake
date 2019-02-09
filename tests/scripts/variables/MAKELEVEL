@@ -1,4 +1,5 @@
 #                                                                    -*-perl-*-
+$xml and return -1;
 
 $description = "The following test creates a makefile to test
 makelevels in Make. It prints \$(MAKELEVEL) and then

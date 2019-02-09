@@ -128,8 +128,10 @@ open(MAKEFILE, "> $m2");
 print MAKEFILE "include $m1\ndefine BAR\nall: ; \@echo \$(FOO) bar\nendef\n\$(eval \$(BAR))\n";
 close(MAKEFILE);
 
+$answer = "foo bar\n";
+$xml_skip = 1;
 run_make_with_options($m2, '', get_logfile());
-compare_output("foo bar\n", get_logfile(1));
+compare_output($answer, get_logfile(1));
 
 # Test different types of whitespace, and bsnl inside functions
 
@@ -190,6 +192,7 @@ all:;@:
 !),
               '', "b  \r  \nc  \r  \n");
 
+$xml_skip = 1;
 run_make_test(xlate(q!
 define FOO
 $(foreach

@@ -19,11 +19,10 @@ EOF
 
 close(MAKEFILE);
 
-&run_make_with_options($makefile, "", &get_logfile);
-
 # Create the answer to what should be produced by this Makefile
 $answer = "FOO = OO FOO = foo FOO = foo FOO = foo\n";
 
+&run_make_with_options($makefile, "", &get_logfile);
 
 &compare_output($answer,&get_logfile(1));
 

@@ -65,6 +65,24 @@ AM_GNU_GETTEXT([external])
 # whether functions and headers are available, whether they work, etc.
 AC_SYS_LARGEFILE
 
+# Optional features
+AC_ARG_ENABLE(xml, [  --disable-xml disables -x option], [use_xml=false],
+            [use_xml=true
+LIBS="-lxml2 $LIBS"
+            ])
+
+if test "$use_xml" = "true" ; then 
+   AC_CHECK_LIB([xml2], [xmlNewDoc], [use_xml=true],
+            [use_xml=no])
+fi
+
+AS_IF([test "$use_xml" = "true"],
+            [CPPFLAGS="$CPPFLAGS -DXML -I/usr/include/libxml2"],
+            )
+AM_CONDITIONAL(XML, test x$use_xml = xtrue)
+
+# End test xml
+
 # Checks for libraries.
 AC_SEARCH_LIBS([getpwnam], [sun])
 

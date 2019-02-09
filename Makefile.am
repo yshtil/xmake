@@ -59,6 +59,13 @@ loadavg_SRCS =	lib/getloadavg.c
 make_SOURCES =	$(make_SRCS)
 EXTRA_make_SOURCES = $(amiga_SRCS) $(vms_SRCS)
 
+if XML
+make_SOURCES += src/xml.c src/xmldef.h
+XML = 1
+else
+NOXMLTEST = 1
+endif
+
 make_LDADD =	$(LIBOBJS) $(GUILE_LIBS) lib/libgnu.a $(GETLOADAVG_LIBS) \
 		@LIBINTL@
 
@@ -151,11 +158,14 @@ check-local: check-regression
 #
 MAKETESTFLAGS =
 
+TESTMAKE = ../make
+
 .PHONY: check-regression
 
 check-regression: tests/config-flags.pm
 	@if test -f '$(top_srcdir)/tests/run_make_tests'; then \
 	  ulimit -n 128; \
+	  topstat=0;\
 	  if $(PERL) -v >/dev/null 2>&1; then \
 	    case `cd '$(top_srcdir)'; pwd` in `pwd`) : ;; \
 	      *) test -d tests || mkdir tests; \
@@ -165,13 +175,24 @@ check-regression: tests/config-flags.pm
 		     rm -f tests/$$f; ln -s ../srctests/$$f tests; \
 		   done; fi ;; \
 	    esac; \
-	    echo "cd tests && $(PERL) ./run_make_tests.pl -srcdir $(abs_top_srcdir) -make ../make$(EXEEXT) $(MAKETESTFLAGS)"; \
-	    cd tests && $(PERL) ./run_make_tests.pl -srcdir '$(abs_top_srcdir)' -make '../make$(EXEEXT)' $(MAKETESTFLAGS); \
+	    $(if $(XML),$(if $(NOXMLTEST),,(set -x;(cd tests && $(PERL) ./run_make_tests.pl \
+		$(if $(STOPONERROR),-stop) -xml $(if $(STOPONERROR),-stop) -srcdir $(abs_srcdir)$(if $(KEEP), -keep)$(if $(DEBUG), -debug) -make $(TESTMAKE)$(EXEEXT) $(MAKETESTFLAGS)));\
+	topstat=$$?;\
+	if [ -n "$(STOPONERROR)" -a $$topstat -ne 0 ] ; then \
+	  exit 1;\
+	fi ; \
+	set +x;)) \
+	    $(if $(XML)$(XMLONLY),,set -x;(cd tests && $(PERL) ./run_make_tests.pl $(if $(KEEP), -keep)$(if $(DEBUG), -debug) $(if $(STOPONERROR),-stop) -srcdir '$(abs_srcdir)' -make '$(TESTMAKE)$(EXEEXT)' $(MAKETESTFLAGS));set +x;) \
+	stat=$$?;\
+	if [ -n "$(STOPONERROR)" -a $$stat -ne 0 ] ; then \
+	  exit $$stat;\
+	fi ; \
+	exit $$topstat;\
 	  else \
 	    echo "Can't find a working Perl ($(PERL)); the test suite requires Perl."; \
 	  fi; \
 	else \
-	  echo "Can't find the GNU Make test suite ($(top_srcdir)/tests)."; \
+	  echo "Can't find the GNU Make test suite ($(srcdir)/tests)."; \
 	fi
 
 

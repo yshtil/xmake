@@ -21,26 +21,22 @@ print MAKEFILE "\t\@echo I am \$(subst output,,\$@)\n";
 
 close(MAKEFILE);
 
-&touch("test.h");
-
-&run_make_with_options($makefile,"bigoutput",&get_logfile);
-
+$xml_init_cmd = q!&touch("test.h");!;
 
 # Create the answer to what should be produced by this Makefile
 $answer = "I am big\n";
 
+&run_make_with_options($makefile,"bigoutput",&get_logfile);
+
 &compare_output($answer,&get_logfile(1));
 
-&run_make_with_options($makefile,"littleoutput",&get_logfile);
+$xml_init_cmd = q!&touch("test.h");!;
+
 $answer = "I am little\n";
+&run_make_with_options($makefile,"littleoutput",&get_logfile);
 &compare_output($answer,&get_logfile(1));
 
-unlink "test.h";
+$xml_post_check = q!unlink "test.h";!;
 
 1;
-
-
-
-
-
 

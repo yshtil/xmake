@@ -42,6 +42,12 @@ struct passwd *getpwnam (char *name);
 #endif
 #endif /* !WINDOWS32 */
 
+#ifdef XML
+extern char **xml_flag;
+floc *current_floc;
+unsigned char nonfatal_error;
+#endif
+
 /* A 'struct ebuffer' controls the origin of the makefile we are currently
    eval'ing.
 */
@@ -605,6 +611,10 @@ eval (struct ebuffer *ebuf, int set_default)
   cmds_started = tgts_started = 1;
 
   fstart = &ebuf->floc;
+#ifdef XML
+  if (xml_flag)
+    current_floc = fstart;
+#endif
   fi.filenm = ebuf->floc.filenm;
 
   /* Loop over lines in the file.
@@ -1391,6 +1401,7 @@ eval (struct ebuffer *ebuf, int set_default)
 
   free (collapsed);
   free (commands);
+  current_floc = NULL;
 }
 
 
@@ -1458,7 +1469,15 @@ do_define (char *name, enum variable_origin origin, struct ebuffer *ebuf)
   else
     {
       if (var.value[0] != '\0')
-        O (error, &defstart, _("extraneous text after 'define' directive"));
+ #ifdef XML
+        {
+          if (xml_flag)
+            nonfatal_error = 1; /* Cleared in xml */
+#endif
+       O (error, &defstart, _("extraneous text after 'define' directive"));
+#ifdef XML
+        }
+#endif
 
       /* Chop the string before the assignment token to get the name.  */
       var.name[var.length] = '\0';
@@ -1510,9 +1529,16 @@ do_define (char *name, enum variable_origin origin, struct ebuffer *ebuf)
               p += 5;
               remove_comments (p);
               if (*(next_token (p)) != '\0')
+ #ifdef XML
+        {
+          if (xml_flag)
+            nonfatal_error = 1; /* Cleared in xml */
+#endif
                 O (error, &ebuf->floc,
                    _("extraneous text after 'endef' directive"));
-
+#ifdef XML
+        }
+#endif
               if (--nlevels == 0)
                 break;
             }
@@ -1962,6 +1988,10 @@ record_files (struct nameseq *filenames, const char *pattern,
       cmds->commands = xstrndup (commands, commands_idx);
       cmds->command_lines = 0;
       cmds->recipe_prefix = prefix;
+#ifdef XML
+      if (xml_flag)
+        cmds->xmake_recurse = 0;
+#endif
     }
   else
      cmds = 0;

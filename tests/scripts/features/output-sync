@@ -4,6 +4,8 @@ $description = "Test --output-sync (-O) option.";
 
 $details = "Test the synchronization of output from parallel jobs.";
 
+$xml and return -1;
+
 # If we don't have output sync support, never mind.
 exists $FEATURES{'output-sync'} or return -1;
 

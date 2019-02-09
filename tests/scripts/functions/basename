@@ -21,10 +21,10 @@ print MAKEFILE "string := \$(basename src${pathsep}a.b.z.foo.c src${pathsep}hack
 
 close(MAKEFILE);
 
-&run_make_with_options($makefile,"",&get_logfile,0);
-
 # Create the answer to what should be produced by this Makefile
 $answer = "src${pathsep}a.b.z.foo src${pathsep}hacks src.bar${pathsep}a.b.z.foo src.bar${pathsep}hacks hacks\n";
+
+&run_make_with_options($makefile,"",&get_logfile,0);
 
 # COMPARE RESULTS
 

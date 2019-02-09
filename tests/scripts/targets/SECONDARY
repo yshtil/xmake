@@ -2,6 +2,8 @@
 
 $description = "Test the behaviour of the .SECONDARY target.";
 
+$xml and return -1;
+
 $details = "\
 Test the behavior of the .SECONDARY special target.
 Create a makefile where a file would not normally be considered

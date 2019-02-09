@@ -76,6 +76,7 @@ all:
 
 # Now try using a different interpreter
 # This doesn't work on Windows right now
+$DB::single = 1;
 if ($port_type ne 'W32') {
     run_make_test(q!
 .RECIPEPREFIX = >

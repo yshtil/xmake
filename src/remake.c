@@ -22,6 +22,13 @@ this program.  If not, see <http://www.gnu.org/licenses/>.  */
 #include "variable.h"
 #include "debug.h"
 
+#ifdef XML
+#include "xmldef.h"
+extern char **xml_flag;
+const char *def_goal;
+extern struct file *new_job_file;
+#endif
+
 #include <assert.h>
 
 #ifdef HAVE_FCNTL_H
@@ -209,6 +216,9 @@ update_goal_chain (struct goaldep *goaldeps)
 
           /* Reset FILE since it is null at the end of the loop.  */
           file = g->file;
+#ifdef XML
+          def_goal = file->name;
+#endif
 
           if (stop || !any_not_updated)
             {
@@ -331,6 +341,12 @@ update_file (struct file *file, unsigned int depth)
     {
       enum update_status new;
 
+#ifdef XML
+      /* Skip loaded that has no dependencies */
+      if (xml_flag && !f->xml_ctxt && (!f->loaded || f->deps))
+        f->xml_ctxt = xml_add_goal(f);
+#endif
+
       f->considered = considered;
 
       new = update_file_1 (f, depth);
@@ -390,8 +406,16 @@ complain (struct file *file)
 
           if (!keep_going_flag)
             fatal (NILF, l, m, "", file->name, file->parent->name, "");
-
+#ifdef XML
+          {
+            struct file *save = new_job_file;
+            new_job_file = file->parent;
+#endif
           error (NILF, l, m, "*** ", file->name, file->parent->name, ".");
+#ifdef XML
+          new_job_file = save;
+          }
+#endif
         }
       else
         {
@@ -540,14 +564,30 @@ update_file_1 (struct file *file, unsigned int depth)
           int dontcare = 0;
 
           check_renamed (d->file);
-
+#ifdef XML
+      xml_add_dep(file->xml_ctxt, d);
+#endif
           mtime = file_mtime (d->file);
           check_renamed (d->file);
 
           if (is_updating (d->file))
             {
+#ifdef XML
+              if (xml_flag)
+                {
+                  int len = strlen("Circular %s <- %s dependency dropped.") + strlen(file->name) + strlen(d->file->name) + 100;
+                  char *buf = xmalloc(len);
+                  sprintf(buf,"Circular %s <- %s dependency dropped.", file->name, d->file->name);
+                  xml_add_warning(buf, file);
+                  free(buf);
+                } else
+                OSS (error, NILF, _("Circular %s <- %s dependency dropped."),
+                     file->name, d->file->name);
+                
+#else
               OSS (error, NILF, _("Circular %s <- %s dependency dropped."),
                    file->name, d->file->name);
+#endif
               /* We cannot free D here because our the caller will still have
                  a reference to it when we were called recursively via
                  check_dep below.  */

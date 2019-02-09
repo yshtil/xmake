@@ -44,7 +44,8 @@ all: ; @echo $$HI
 if ($port_type ne 'W32') {
     # Test shell errors in recipes including offset
     # This needs to be ported to Windows, or else Windows error messages
-    # need to converted to look like more normal make errors.
+  # need to converted to look like more normal make errors.
+  $xml_skip = 1;
     run_make_test('
 all:
 	@echo hi
@@ -53,6 +54,7 @@ all:
 ',
                   '', "#MAKE#: ./basdfdfsed: $ERR_no_such_file\nhi\n127\n");
 
+  $xml_skip = 1;
     run_make_test('
 $(shell ./basdfdfsed where)
 all: ; @echo $(.SHELLSTATUS)
@@ -61,6 +63,7 @@ all: ; @echo $(.SHELLSTATUS)
 
     # Test SHELLSTATUS for kill.
     # This test could be ported to Windows, using taskkill ... ?
+  $xml_skip = 1;
     run_make_test('.PHONY: all
 $(shell kill -2 $$$$)
 SIG := $(.SHELLSTATUS)

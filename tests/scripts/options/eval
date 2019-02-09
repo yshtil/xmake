@@ -5,6 +5,8 @@ $description = "Test the --eval option.";
 $details = "Verify that --eval options take effect,
 and are passed to sub-makes.";
 
+$xml && return -1;
+
 # Verify that --eval is evaluated first
 run_make_test(q!
 $(info infile)

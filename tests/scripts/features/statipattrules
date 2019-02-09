@@ -9,7 +9,7 @@ name and the target name with .c.  It also does the same thing
 for another target filtered with .elc and creates a command
 to emacs a .el file";
 
-&touch('bar.c', 'lose.c');
+$xml_init_cmd = q!&touch('bar.c', 'lose.c');!;
 
 #   TEST #0
 #   -------
@@ -32,12 +32,12 @@ run_make_test(undef, 'lose.o', 'CC -c lose.c -o lose.o');
 
 #   TEST #2
 #   -------
-&touch("foo.el");
+$xml_init_cmd = q!&touch("foo.el");!;
 
 run_make_test(undef, 'foo.elc', 'emacs foo.el');
 
 # Clean up after the first tests.
-unlink('foo.el', 'bar.c', 'lose.c');
+$xml_init_cmd = q!unlink('foo.el', 'bar.c', 'lose.c');!;
 
 
 # TEST #3 -- PR/1670: don't core dump on invalid static pattern rules
@@ -61,6 +61,7 @@ foo.x bar.x: %.x : ; @echo $@
 
 # TEST #5 -- bug #13881: double colon static pattern rule does not
 #                        substitute %.
+$xml_skip = 1;
 run_make_test('
 foo.bar:: %.bar: %.baz
 foo.baz: ;@:

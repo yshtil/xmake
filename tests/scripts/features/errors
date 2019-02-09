@@ -36,7 +36,7 @@ all:
 
 # Try failing due to unknown command
 my $unk = './foobarbazbozblat';
-unlink($unk);
+$xml_init_cmd = q!my $unk = './foobarbazbozblat';unlink($unk);!;
 
 my $err = $ERR_no_such_file;
 
@@ -61,7 +61,8 @@ run_make_test(undef, 'two',
 # Try failing due to non-executable file
 
 my $noexe = './barfooblatboz';
-touch($noexe);
+$xml_init_cmd = q!my $noexe = './barfooblatboz';
+touch($noexe);!;
 
 run_make_test(qq!
 one: ; -$noexe xx yy

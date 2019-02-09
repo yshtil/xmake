@@ -30,7 +30,7 @@ EOF
 
 close(MAKEFILE);
 
-&touch("defs.h","test.h","config.h");
+$xml_init_cmd = q!unlink("extra.h");&touch("defs.h","test.h","config.h");!;
 
 if ($vos)
 {
@@ -41,13 +41,13 @@ else
    $error_code = 512;
 }
 
+# Create the answer to what should be produced by this Makefile
+$answer = "$make_name: *** No rule to make target 'extra.h', needed by 'foo.o'.  Stop.\n";
+
 &run_make_with_options($makefile,
                        "extradeps=extra.h",
                        &get_logfile,
                        $error_code);
-
-# Create the answer to what should be produced by this Makefile
-$answer = "$make_name: *** No rule to make target 'extra.h', needed by 'foo.o'.  Stop.\n";
 
 &compare_output($answer,&get_logfile(1));
 
@@ -55,24 +55,19 @@ $answer = "$make_name: *** No rule to make target 'extra.h', needed by 'foo.o'. 
 # TEST #2
 # -------
 
-&touch("extra.h");
+$xml_init_cmd = q!&touch("extra.h");!;
+
+# Create the answer to what should be produced by this Makefile
+$answer = "EXTRA EXTRA\n";
 
 &run_make_with_options($makefile,
                        "extradeps=extra.h",
                        &get_logfile,
                        0);
 
-# Create the answer to what should be produced by this Makefile
-$answer = "EXTRA EXTRA\n";
-
 &compare_output($answer,&get_logfile(1));
 
-unlink("defs.h","test.h","config.h","extra.h");
+$xml_post_check = q!unlink("defs.h","test.h","config.h","extra.h");!;
 
 1;
-
-
-
-
-
 

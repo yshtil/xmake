@@ -21,10 +21,10 @@ print MAKEFILE "string := \$(notdir ${pathsep}src${pathsep}foo.c hacks) \n"
 
 close(MAKEFILE);
 
-&run_make_with_options($makefile,"",&get_logfile,0);
-
 # Create the answer to what should be produced by this Makefile
 $answer = "foo.c hacks\n";
+
+&run_make_with_options($makefile,"",&get_logfile,0);
 
 # COMPARE RESULTS
 

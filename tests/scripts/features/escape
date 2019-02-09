@@ -32,7 +32,7 @@ foo\#bar.ext: ; @echo "foo#bar.ext = ($@)"
               'touch (foo)');
 
 # TEST 2: This one should fail, since the ":" is unquoted.
-
+$xml_skip = 1;
 run_make_test(undef,
               'NOESC=1',
               "#MAKEFILE#:12: *** target pattern contains no '%'.  Stop.",
@@ -45,7 +45,7 @@ run_make_test(undef,
               'touch (pre:foo)');
 
 # TEST 4: This one should fail, since the escape char is escaped.
-
+$xml_skip = 1;
 run_make_test(undef,
               'TWOESC=1',
               "#MAKEFILE#:12: *** target pattern contains no '%'.  Stop.",

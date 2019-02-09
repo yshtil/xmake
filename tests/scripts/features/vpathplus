@@ -2,6 +2,7 @@
 $description = "Tests the new VPATH+ functionality added in 3.76.";
 
 $details = "";
+$xml and return -1;
 
 $VP = "$workdir$pathsep";
 

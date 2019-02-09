@@ -2,20 +2,20 @@
 
 $description = "Test the interaction of the -lfoo feature and vpath";
 $details = "";
-
-my @dirs_to_make = qw(a1 b1 a2 b2 b3);
-for my $d (@dirs_to_make) {
-    mkdir($d, 0777);
+$xml_init_cmd = qq!
+my \@dirs_to_make = qw(a1 b1 a2 b2 b3);
+for my \$d (\@dirs_to_make) {
+    mkdir(\$d, 0777);
 }
 
-my @files_to_touch = ("a1${pathsep}lib1.a",
+my \@files_to_touch = ("a1${pathsep}lib1.a",
                       "a1${pathsep}libc.a",
                       "b1${pathsep}lib1.so",
                       "a2${pathsep}lib2.a",
                       "b2${pathsep}lib2.so",
                       "lib3.a",
                       "b3${pathsep}lib3.so");
-&touch(@files_to_touch);
+&touch(\@files_to_touch);!;
 
 my $answer = "a1${pathsep}lib1.a a1${pathsep}libc.a " .
              "a2${pathsep}lib2.a lib3.a\n";
@@ -33,9 +33,19 @@ all: -l1 -lc -l2 -l3; @echo $^
 ',
               '', $answer);
 
-unlink(@files_to_touch);
-for my $d (@dirs_to_make) {
-    rmdir($d);
-}
+$xml_post_check = qq!
+my \@dirs_to_make = qw(a1 b1 a2 b2 b3);
+my \@files_to_touch = ("a1${pathsep}lib1.a",
+                      "a1${pathsep}libc.a",
+                      "b1${pathsep}lib1.so",
+                      "a2${pathsep}lib2.a",
+                      "b2${pathsep}lib2.so",
+                      "lib3.a",
+                      "b3${pathsep}lib3.so");
+
+unlink(\@files_to_touch);
+for my \$d (\@dirs_to_make) {
+    rmdir(\$d);
+}!;
 
 1;

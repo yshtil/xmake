@@ -31,8 +31,6 @@ print MAKEFILE "string  := word.pl general_test2.pl1 FORCE.pl word.pl3 generic_t
 
 close(MAKEFILE);
 
-&run_make_with_options($makefile,"",&get_logfile,0);
-
 # Create the answer to what should be produced by this Makefile
 
 # COMPARE RESULTS
@@ -40,6 +38,8 @@ $answer = ".pl .pl1 .pl .pl3 .perl .c .c\n"
          .".c .perl .pl .pl1 .pl3\n"
          .".pl .pl1 .pl .pl3 .perl .c .c .out\n"
          .".c .perl .pl .pl1 .pl3\n";
+
+&run_make_with_options($makefile,"",&get_logfile,0);
 
 # In this call to compare output, you should use the call &get_logfile(1)
 # to send the name of the last logfile created.  You may also use

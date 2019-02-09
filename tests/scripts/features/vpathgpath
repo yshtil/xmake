@@ -1,6 +1,8 @@
 #                                                                    -*-perl-*-
 $description = "Tests VPATH+/GPATH functionality.";
 
+return -1 if $xml;
+
 $details = "";
 
 $VP = "$workdir$pathsep";
@@ -53,11 +55,11 @@ sub touchfiles {
 
 &touchfiles("VP/foo.d", "VP/bar.d", "VP/foo.c", "VP/bar.c", "foo.b", "bar.d");
 
+$answer = "$make_name: Nothing to be done for 'general'.\n";
+
 &run_make_with_options($makefile,"general",&get_logfile());
 
 push(@touchedfiles, "bar.c");
-
-$answer = "$make_name: Nothing to be done for 'general'.\n";
 
 &compare_output($answer,&get_logfile(1));
 

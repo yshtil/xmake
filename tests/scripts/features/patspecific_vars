@@ -36,29 +36,29 @@ close(MAKEFILE);
 
 # TEST #1 -- basics
 
-&run_make_with_options($makefile, "", &get_logfile);
 $answer = "one.x: one two baz\ntwo.x: foo four baz\nthree.x: foo four three\n";
+&run_make_with_options($makefile, "", &get_logfile);
 &compare_output($answer,&get_logfile(1));
 
 
 # TEST #2 -- try the override feature
 
-&run_make_with_options($makefile, "BAZ=five", &get_logfile);
 $answer = "one.x: one two five\ntwo.x: foo four five\nthree.x: foo four three\n";
+&run_make_with_options($makefile, "BAZ=five", &get_logfile);
 &compare_output($answer,&get_logfile(1));
 
 
 # TEST #3 -- make sure patterns are inherited properly
 
-&run_make_with_options($makefile, "four.x", &get_logfile);
 $answer = "baz: foo two baz\nfour.x: foo two baz\n";
+&run_make_with_options($makefile, "four.x", &get_logfile);
 &compare_output($answer,&get_logfile(1));
 
 
 # TEST #4 -- test multiple patterns matching the same target
 
-&run_make_with_options($makefile, "ab", &get_logfile);
 $answer = "aaa bbb\nccc ddd\n";
+&run_make_with_options($makefile, "ab", &get_logfile);
 &compare_output($answer,&get_logfile(1));
 
 # TEST #5 -- test pattern-specific exported variables

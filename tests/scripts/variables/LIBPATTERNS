@@ -1,12 +1,13 @@
 #                                                                    -*-perl-*-
 
+$xml and return -1;
 $description = "Test .LIBPATTERNS special variable.";
 
 $details = "";
 
 # TEST 0: basics
 
-touch('mtest_foo.a');
+$xml_init_cmd = q!touch('mtest_foo.a');!;
 
 run_make_test('
 .LIBPATTERNS = mtest_%.a

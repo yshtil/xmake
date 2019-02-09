@@ -27,6 +27,9 @@ struct commands
     char recipe_prefix;         /* Recipe prefix for this command set.  */
     unsigned int any_recurse:1; /* Nonzero if any 'lines_flags' elt has */
                                 /* the COMMANDS_RECURSE bit set.  */
+#ifdef XML
+    unsigned char xmake_recurse; /* $(MAKE) present */
+#endif
   };
 
 /* Bits in 'lines_flags'.  */

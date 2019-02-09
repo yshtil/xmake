@@ -1,5 +1,7 @@
 #! -*-perl-*-
 
+$xml && return -1;
+
 $description = "Test the behaviour of the .DELETE_ON_ERROR target.";
 
 $details = "";

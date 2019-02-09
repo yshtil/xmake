@@ -24,10 +24,10 @@ EOF
 
 close(MAKEFILE);
 
-&run_make_with_options($makefile, "", &get_logfile);
-
 # Create the answer to what should be produced by this Makefile
 $answer = "AA\nBA\n";
+$xml_skip = 1;
+&run_make_with_options($makefile, "", &get_logfile);
 
 &compare_output($answer,&get_logfile(1));
 
@@ -50,10 +50,10 @@ EOF
 
 close(MAKEFILE);
 
-&run_make_with_options($makefile2, "", &get_logfile);
-
 # Create the answer to what should be produced by this Makefile
 $answer = "A = A B = B\n";
+
+&run_make_with_options($makefile2, "", &get_logfile);
 
 &compare_output($answer,&get_logfile(1));
 
@@ -63,6 +63,7 @@ $makefile3 = &get_tmpfile;
 
 open(MAKEFILE,"> $makefile3");
 
+#$xml_skip = 1;
 print MAKEFILE <<'EOF';
 FOO = foo
 
@@ -80,12 +81,14 @@ EOF
 
 close(MAKEFILE);
 
-&run_make_with_options($makefile3, "", &get_logfile);
+$xml_skip = 1;
 $answer = "it\n";
+&run_make_with_options($makefile3, "", &get_logfile);
 &compare_output($answer,&get_logfile(1));
 
-&run_make_with_options($makefile3, "BAR=1", &get_logfile);
 $answer = "it\nworked\n";
+$xml_skip = 1;
+&run_make_with_options($makefile3, "BAR=1", &get_logfile);
 &compare_output($answer,&get_logfile(1));
 
 
@@ -105,8 +108,8 @@ EOF
 
 close(MAKEFILE);
 
-&run_make_with_options($makefile3, "", &get_logfile);
 $answer = "[         9 8 7 6 5 4 3 2 1 0 ]\n";
+&run_make_with_options($makefile3, "", &get_logfile);
 &compare_output($answer,&get_logfile(1));
 
 
@@ -128,8 +131,8 @@ EOF
 close(MAKEFILE);
 
 $extraENV{EVAR} = '1';
-&run_make_with_options($makefile4, "", &get_logfile);
 $answer = "OK\n";
+&run_make_with_options($makefile4, "", &get_logfile);
 &compare_output($answer,&get_logfile(1));
 
 
@@ -161,7 +164,7 @@ world');
 # command script, because these are evaluated after snap_deps() and that
 # causes lots of problems (like core dumps!)
 # See Savannah bug # 12124.
-
+$xml_skip = 1;
 run_make_test('deps: ; $(eval deps: foo)', '',
               '#MAKEFILE#:1: *** prerequisites cannot be defined in recipes.  Stop.',
               512);

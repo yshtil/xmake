@@ -2,6 +2,8 @@
 
 $description = "Test the -w option to GNU make.";
 
+return -1 if $xml;
+
 # Simple test without -w
 run_make_test(q!
 all: ; @echo hi
@@ -12,6 +14,7 @@ all: ; @echo hi
 run_make_test(undef, "-w",
               "#MAKE#: Entering directory '#PWD#'\nhi\n#MAKE#: Leaving directory '#PWD#'\n");
 
+$xml_skip = 1;
 # Test makefile rebuild to ensure no enter/leave
 run_make_test(q!
 include foo
@@ -21,6 +24,7 @@ foo: ; touch foo
         "", "touch foo\n");
 unlink('foo');
 
+$xml_skip = 1;
 # Test makefile rebuild with -w
 run_make_test(q!
 include foo

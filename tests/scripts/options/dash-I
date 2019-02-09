@@ -9,6 +9,8 @@ under -I in the command line.  Without this option, the make
 would fail to find the included file.  It also checks to make
 sure that the -I option gets passed to recursive makes.";
 
+$xml and return -1;
+
 $makefile2 = &get_tmpfile;
 
 open(MAKEFILE,"> $makefile");

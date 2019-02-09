@@ -26,8 +26,8 @@ EOMAKE
 
 close(MAKEFILE);
 
-&run_make_with_options($makefile, "", &get_logfile);
 $answer = "1 false\n2\n3\n4 true\n5 true\n6 false\n7 true\n8 false\n9 true hi\n10 fal,sethere\n11 false\n";
+&run_make_with_options($makefile, "", &get_logfile);
 &compare_output($answer, &get_logfile(1));
 
 1;

@@ -27,6 +27,7 @@ run_make_test(undef, 'SE=1', "three\nfour\nbariz\nfoo\$bar : baraz bariz");
 
 # TEST #1: automatic variables.
 #
+$xml_init_cmd = q!unlink('foo.c');!;
 run_make_test(q!
 .SECONDEXPANSION:
 .DEFAULT: ; @echo '$@'
@@ -114,6 +115,7 @@ baz.2
 ');
 
 # TEST #4: eval in a context where there is no reading_file
+$xml_skip = 1;
 run_make_test(q!
 .SECONDEXPANSION:
 all : $$(eval $$(info test))
@@ -122,7 +124,7 @@ all : $$(eval $$(info test))
 
 # TEST #5: (NEGATIVE) catch eval in a prereq list trying to create new
 # target/prereq relationships.
-
+$xml_skip = 1;
 run_make_test(q!
 .SECONDEXPANSION:
 proj1.exe : proj1.o $$(eval $$(test))

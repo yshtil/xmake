@@ -21,10 +21,10 @@ print MAKEFILE "string := \$(join a b c,foo      hacks .pl1) \n"
 
 close(MAKEFILE);
 
-&run_make_with_options($makefile,"",&get_logfile,0);
-
 # Create the answer to what should be produced by this Makefile
 $answer = "afoo bhacks c.pl1\n";
+
+&run_make_with_options($makefile,"",&get_logfile,0);
 
 # COMPARE RESULTS
 

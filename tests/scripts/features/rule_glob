@@ -4,7 +4,7 @@ $description = "Test globbing in targets and prerequisites.";
 
 $details = "";
 
-touch(qw(a.one a.two a.three));
+$xml_init_cmd = q!touch(qw(a.one a.two a.three));!;
 
 # Test wildcards in regular targets and prerequisites
 run_make_test(q{

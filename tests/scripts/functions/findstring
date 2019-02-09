@@ -21,13 +21,13 @@ print MAKEFILE "string := \$(findstring port, reporter)\n"
 
 close(MAKEFILE);
 
+# Create the answer to what should be produced by this Makefile
+$answer = "port\n";
+
 &run_make_with_options($makefile,
                        "",
                        &get_logfile,
                        0);
-
-# Create the answer to what should be produced by this Makefile
-$answer = "port\n";
 
 # COMPARE RESULTS
 

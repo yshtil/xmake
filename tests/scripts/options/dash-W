@@ -2,6 +2,8 @@
 
 $description = "Test make -W (what if) option.\n";
 
+$xml and return -1;
+
 # Basic build
 
 run_make_test('

@@ -7,6 +7,7 @@ if (!$parallel_jobs) {
   return -1;
 }
 
+$DB::single = 1;
 if ($vos) {
   $sleep_command = "sleep -seconds";
 }
@@ -14,7 +15,7 @@ else {
   $sleep_command = "sleep";
 }
 
-rmfiles(qw(ONE TWO THREE FOUR));
+$xml_init_cmd = q!unlink(qw(ONE TWO THREE FOUR));!;
 
 run_make_test("
 all : def_1 def_2 def_3
@@ -22,7 +23,9 @@ def_1 : ; \@#PERL# jhelp.pl -f ONE -w THREE -e TWO
 def_2 : ; \@#PERL# jhelp.pl -w FOUR -f THREE
 def_3 : ; \@#PERL# jhelp.pl -w ONE -f FOUR",
               '-j4', "ONE\nFOUR\nTHREE\nTWO");
-rmfiles(qw(ONE TWO THREE FOUR));
+
+# Need to do HARD rmfiles, 
+$xml_init_cmd = q!unlink(qw(ONE TWO THREE FOUR));!;
 
 # Verify -j added to MAKEFLAGS in the makefile
 run_make_test("
@@ -32,10 +35,9 @@ def_1 : ; \@#PERL# jhelp.pl -f ONE -w THREE -e TWO
 def_2 : ; \@#PERL# jhelp.pl -w FOUR -f THREE
 def_3 : ; \@#PERL# jhelp.pl -w ONE -f FOUR",
               '', "ONE\nFOUR\nTHREE\nTWO");
-rmfiles(qw(ONE TWO THREE FOUR));
+$xml_init_cmd = q!unlink(qw(ONE TWO THREE FOUR));!;
 
 # Command line should take precedence
-rmfiles(qw(ONE TWO THREE FOUR));
 run_make_test("
 MAKEFLAGS += -j2
 all : def_1 def_2 def_3
@@ -43,11 +45,12 @@ def_1 : ; \@#PERL# jhelp.pl -f ONE -w THREE -e TWO
 def_2 : ; \@#PERL# jhelp.pl -w FOUR -f THREE
 def_3 : ; \@#PERL# jhelp.pl -w ONE -f FOUR",
               '-j4', "ONE\nFOUR\nTHREE\nTWO");
-rmfiles(qw(ONE TWO THREE FOUR));
+$xml_init_cmd = q!unlink(qw(ONE TWO THREE FOUR));!;
 
 # Test parallelism with included files.  Here we sleep/echo while
 # building the included files, to test that they are being built in
 # parallel.
+$xml_skip = 1;
 run_make_test("
 all: 1 2; \@echo success
 -include 1.inc 2.inc
@@ -56,11 +59,11 @@ all: 1 2; \@echo success
               "-j4",
               "ONE.inc\nTHREE.inc\nTWO.inc\nONE\nTHREE\nTWO\nsuccess\n", 0, 7);
 
-rmfiles(qw(ONE.inc TWO.inc THREE.inc ONE TWO THREE 1.inc 2.inc));
-
+$xml_init_cmd = q!unlink(qw(ONE.inc TWO.inc THREE.inc ONE TWO THREE 1.inc 2.inc));!;
 
 # Test parallelism with included files--this time recurse first and make
 # sure the jobserver works.
+$xml_skip = 1;
 run_make_test("
 recurse: ; \@\$(MAKE) --no-print-directory -f #MAKEFILE# INC=yes all
 all: 1 2; \@echo success
@@ -75,7 +78,7 @@ endif
               "-j4",
               "ONE.inc\nTHREE.inc\nTWO.inc\nONE\nTHREE\nTWO\nsuccess\n", 0, 7);
 
-rmfiles(qw(ONE.inc TWO.inc THREE.inc ONE TWO THREE 1.inc 2.inc));
+$xml_init_cmd = q!unlink(qw(ONE.inc TWO.inc THREE.inc ONE TWO THREE 1.inc 2.inc));!;
 
 # Grant Taylor reports a problem where tokens can be lost (not written back
 # to the pipe when they should be): this happened when there is a $(shell ...)
@@ -84,6 +87,7 @@ rmfiles(qw(ONE.inc TWO.inc THREE.inc ONE TWO THREE 1.inc 2.inc));
 # to trigger this code when I added it but no longer does after the fix.
 # We have to increase the timeout from the default (5s) on this test.
 
+$xml_skip = 1;
 run_make_test("
 export HI = \$(shell \$(\$\@.CMD))
 first.CMD = echo hi
@@ -126,6 +130,7 @@ Ok done",
 
 # Test for Savannah bug #15641.
 #
+$xml_skip = 1;
 run_make_test('
 .PHONY: all
 all:; @:
@@ -144,6 +149,7 @@ mod_a.o mod_b.o: ; @exit 1
 # In earlier versions of make this will either give the wrong answer, or hang.
 
 utouch(-10, 'target');
+$xml_skip = 1;
 run_make_test('target: intermed ; touch $@
 
 .INTERMEDIATE: intermed
@@ -151,13 +157,14 @@ intermed: | phony ; touch $@
 
 .PHONY: phony
 phony: ; : phony', '-rR -j', ': phony');
-rmfiles('target');
+unlink('target');
 
 # TEST #11: Make sure -jN from MAKEFLAGS is processed even when we re-exec
 # See Savannah bug #33873
 
 $extraENV{MAKEFLAGS} = '-j4';
 
+$xml_skip = 1;
 run_make_test(q!
 things = thing1 thing2
 all: $(things)
@@ -169,7 +176,7 @@ inc.mk: ; @touch $@
               '', "thing2start\nthing1start\nthing2end\nthing1end\n");
 
 delete $extraENV{MAKEFLAGS};
-rmfiles(qw(inc.mk thing1start thing1end thing2start thing2end));
+unlink(qw(inc.mk thing1start thing1end thing2start thing2end));
 
 # Ensure intermediate/secondary files are not pruned incorrectly.
 # See Savannah bug #30653
@@ -177,6 +184,7 @@ rmfiles(qw(inc.mk thing1start thing1end thing2start thing2end));
 utouch(-15, 'file2');
 utouch(-10, 'file4');
 utouch(-5,  'file1');
+$xml_skip = 1;
 
 run_make_test(q!
 .INTERMEDIATE: file3
@@ -186,10 +194,10 @@ file2: file1 ; @touch $@
 !,
               '--no-print-directory -j2', "touch file3");
 
-rmfiles('file1', 'file2', 'file3', 'file4');
+unlink('file1', 'file2', 'file3', 'file4');
 
 # Ensure that the jobserver is preserved across make re-exec.
-
+$xml_skip = 1;
 run_make_test(q!
 all: one two
 one: ;@ #PERL# jhelp.pl -w TWO -f ONE
@@ -204,6 +212,7 @@ unlink('fff1.mk', 'ONE', 'TWO');
 # Test if a sub-make needs to re-exec and the makefile is built via
 # sub-make.  Reported by Masahiro Yamada <yamada.masahiro@socionext.com>
 
+$xml_skip = 1;
 run_make_test(q!
 all: ; @$(MAKE) -f #MAKEFILE# recurse
 
@@ -250,12 +259,12 @@ unlink('fff1.mk', 'ONE', 'TWO');
 #               '-j2 INCL=false fdprint',
 #               'bar');
 
-# rmfiles(qw(dependfile output));
+# unlink(qw(dependfile output));
 
 
 # # Do it again, this time where the include is done by the non-master make.
 # run_make_test(undef, '-j2 recurse INCL=false', 'bar');
 
-# rmfiles(qw(dependfile output));
+# unlink(qw(dependfile output));
 
 1;

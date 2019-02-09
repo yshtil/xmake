@@ -2,6 +2,7 @@
 $description = "Test utf8 handling.";
 
 $details = "";
+return -1 if $xml;
 
 # Variable names containing UTF8 characters
 run_make_test("

@@ -1,5 +1,7 @@
 #                                                                    -*-perl-*-
 
+$xml and return -1;
+
 $description = "Test the MAKE_RESTARTS variable.";
 
 # Test basic capability

@@ -18,11 +18,11 @@ EOM
 close(MAKEFILE);
 
 
-&run_make_with_options($makefile,"",&get_logfile);
-
-
 # Create the answer to what should be produced by this Makefile
 $answer = 'DEFINES = -DDEFAULT_TFM_PATH=\".:NICEFONT\"' . "\n";
+
+&run_make_with_options($makefile,"",&get_logfile);
+
 
 # COMPARE RESULTS
 

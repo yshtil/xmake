@@ -22,6 +22,7 @@ foo 1foo: ; @echo $@
 # what the usage looks like, then compare it to what I get here... :(
 
 # On UNIX I can invoke it with 2>/dev/null, then just check the error code.
+$xml_skip = 1;
 
 if ($port_type ne 'W32') {
     run_make_test(undef, "-j1foo 2>/dev/null", '', 512);

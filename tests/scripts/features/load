@@ -3,6 +3,8 @@ $description = "Test the load operator.";
 
 $details = "Test dynamic loading of modules.";
 
+$xml and return -1;
+
 # Don't do anything if this system doesn't support "load"
 exists $FEATURES{load} or return -1;
 

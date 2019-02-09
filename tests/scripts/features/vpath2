@@ -26,10 +26,10 @@ print MAKEFILE "\t\@echo ALL IS WELL\n";
 
 close(MAKEFILE);
 
-&run_make_with_options($makefile,"",&get_logfile);
-
 # Create the answer to what should be produced by this Makefile
 $answer = "ALL IS WELL\n";
+
+&run_make_with_options($makefile,"",&get_logfile);
 
 &compare_output($answer,&get_logfile(1));
 

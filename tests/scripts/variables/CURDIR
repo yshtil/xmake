@@ -12,8 +12,8 @@ close(MAKEFILE);
 # TEST #1
 # -------
 
-&run_make_with_options($makefile,"",&get_logfile);
 $answer = "$pwd\n";
+&run_make_with_options($makefile,"",&get_logfile);
 &compare_output($answer,&get_logfile(1));
 
 

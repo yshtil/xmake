@@ -23,6 +23,9 @@ this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 struct file
   {
+#ifdef XML
+    void *xml_ctxt; /* XML nodeptr */
+#endif
     const char *name;
     const char *hname;          /* Hashed filename */
     const char *vpath;          /* VPATH/vpath pathname */

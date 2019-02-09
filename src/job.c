@@ -27,12 +27,18 @@ this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 #include <string.h>
 
+#ifdef XML
+#include "xmldef.h"
+extern char **xml_flag;
+struct file *new_job_file;
+#endif
+
 /* Default shell to use.  */
 #ifdef WINDOWS32
 # ifdef HAVE_STRINGS_H
-#  include <strings.h>	/* for strcasecmp, strncasecmp */
-# endif
-# include <windows.h>
+#include <strings.h>	/* for strcasecmp, strncasecmp */
+#endif
+#include <windows.h>
 
 const char *default_shell = "sh.exe";
 int no_default_sh_exe = 1;
@@ -561,7 +567,7 @@ child_error (struct child *child,
          Emacs misinterprets it and matches a bogus filename in the compile
          buffer.  */
       char *a = alloca (strlen (flocp->filenm) + 6 + INTSTR_LENGTH + 1);
-      sprintf (a, "%s;%lu", flocp->filenm, flocp->lineno + flocp->offset);
+      sprintf (a, "%s;%lu", flocp->filenm, flocp->lineno + flocp->offset); /* As in orig, sometimes does not work? */
       nm = a;
     }
 
@@ -1235,6 +1241,7 @@ start_job_command (struct child *child)
     argv = construct_command_argv (p, &end, child->file,
                                    child->file->cmds->lines_flags[child->command_line - 1],
                                    &child->sh_batch_file);
+
 #endif
     if (end == NULL)
       child->command_ptr = NULL;
@@ -1243,6 +1250,7 @@ start_job_command (struct child *child)
         *end++ = '\0';
         child->command_ptr = end;
       }
+    /* SHTIL - add xml command HERE */
   }
 
   /* If -q was given, say that updating 'failed' if there was any text on the
@@ -1295,6 +1303,13 @@ start_job_command (struct child *child)
       return;
     }
 
+#ifdef XML
+  if (xml_flag) {
+    /* Print target variables */
+    hash_map_arg(&child->file->variables->set->table, xml_print_variable, child->file);
+  }
+#endif
+
   /* Are we going to synchronize this command's output?  Do so if either we're
      in SYNC_RECURSE mode or this command is not recursive.  We'll also check
      output_sync separately below in case it changes due to error.  */
@@ -1313,6 +1328,9 @@ start_job_command (struct child *child)
   /* Print the command if appropriate.  */
   if (just_print_flag || trace_flag
       || (!(flags & COMMANDS_SILENT) && !silent_flag))
+#ifdef XML
+    if (!xml_flag)
+#endif
     OS (message, 0, "%s", p);
 
   /* Tell update_goal_chain that a command has been started on behalf of
@@ -1349,6 +1367,13 @@ start_job_command (struct child *child)
       goto next_command;
     }
 #endif  /* !VMS && !_AMIGA */
+      /* SHTIL - add xml command HERE */
+#ifdef XML
+  if (xml_flag) {
+      xml_add_command(child->file, p, flags); /* flags needed to pass on  */
+      goto next_command;
+  }
+#endif
 
   /* If -n was given, recurse to get the next line in the sequence.  */
 
@@ -1582,6 +1607,10 @@ start_waiting_job (struct child *c)
      the local load average.  We record that the job should be started
      remotely in C->remote for start_job_command to test.  */
 
+#ifdef XML
+  if (!xml_flag)
+    {
+#endif
   c->remote = start_remote_job_p (1);
 
   /* If we are running at least one job already and the load average
@@ -1601,6 +1630,9 @@ start_waiting_job (struct child *c)
       return 0;
     }
 
+#ifdef XML
+    }
+#endif
   /* Start the first command; reap_children will run later command lines.  */
   start_job_command (c);
 
@@ -1774,8 +1806,39 @@ new_job (struct file *file)
 
       /* Finally, expand the line.  */
       cmds->fileinfo.offset = i;
+#ifdef XML
+      /* Try to detect $(MAKE) */
+      if (xml_flag && (cmds->any_recurse))
+      {
+        /* Expand all but $(MAKE) */
+        char *p = cmds->command_lines[i];
+        char *pp;
+        
+        /* Step past junk */
+        for (p = cmds->command_lines[i];isblank(*p) || (*p == '@') || (*p == '+') || (*p == '-');p++);
+        
+        if (((pp = strstr(p,"$(MAKE)")) && (pp == p))
+            || ((pp = strstr(p,"${MAKE}")) && (pp == p))) {
+          /* Expand all after */
+          char *p1;
+          char *newline = strdup(cmds->command_lines[i]);
+          cmds->xmake_recurse = 1;
+          newline[0] = '_';
+
+          p1 = allocated_variable_expand_for_file (newline,  file);
+          memcpy(p1, "$(MAKE)",6);
+          lines[i] = p1;
+          free(newline);
+        } else 
+              lines[i] = allocated_variable_expand_for_file (cmds->command_lines[i],
+              file);        
+      } else
+              lines[i] = allocated_variable_expand_for_file (cmds->command_lines[i],
+              file);        
+#else
       lines[i] = allocated_variable_expand_for_file (cmds->command_lines[i],
                                                      file);
+#endif
     }
 
   cmds->fileinfo.offset = 0;
@@ -3578,6 +3641,13 @@ construct_command_argv (char *line, char **restp, struct file *file,
     warn_undefined_variables_flag = 0;
 
     shell = allocated_variable_expand_for_file ("$(SHELL)", file);
+#ifdef XML
+    if (xml_flag)
+      {
+        struct variable *v = lookup_variable ("SHELL", 5);
+        xml_print_variable(v, v->per_target ? file : NULL);
+      }
+#endif
 #ifdef WINDOWS32
     /*
      * Convert to forward slashes so that construct_command_argv_internal()

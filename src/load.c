@@ -30,6 +30,11 @@ this program.  If not, see <http://www.gnu.org/licenses/>.  */
 #include "filedef.h"
 #include "variable.h"
 
+#ifdef XML
+#include "xmldef.h"
+extern char **xml_flag;
+#endif
+
 /* Tru64 V4.0 does not have this flag */
 #ifndef RTLD_GLOBAL
 # define RTLD_GLOBAL 0
@@ -128,6 +133,11 @@ load_file (const floc *flocp, const char **ldname, int noerror)
   const char *fp;
   int r;
   load_func_t symp;
+#ifdef XML
+  if (xml_flag)
+    return xml_load_file(ldname);
+#endif
+
 
   /* Break the input into an object file name and a symbol name.  If no symbol
      name was provided, compute one from the object file name.  */

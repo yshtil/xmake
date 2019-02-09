@@ -28,7 +28,6 @@ all:
 EOF
 close(MAKEFILE);
 
-&run_make_with_options($makefile, "", &get_logfile);
 $answer = "6\n"
          ."2058\n"
          ."word.pl\n"
@@ -41,6 +40,7 @@ $answer = "6\n"
 	 ."generic_test.perl MAKEFILES_variable.pl\n"
 	 ."\n"
 	 ."word.pl general_test2.pl FORCE.pl word.pl\n";
+&run_make_with_options($makefile, "", &get_logfile);
 &compare_output($answer, &get_logfile(1));
 
 

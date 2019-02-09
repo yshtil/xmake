@@ -20,13 +20,14 @@ dir/subdir/%.a: dir/subdir/%.b ; @echo cp $< $@',
 
 # Test implicit rules
 
-&touch('foo.c');
+$xml_init_cmd = qq!&touch('foo.c');!;
+
 run_make_test('foo: foo.o',
               'CC="@echo cc" OUTPUT_OPTION=',
               'cc -c foo.c
 cc foo.o -o foo');
-unlink('foo.c');
 
+$xml_init_cmd = qq!unlink('foo.c');!;
 
 # Test implicit rules with '$' in the name (see se_implicit)
 

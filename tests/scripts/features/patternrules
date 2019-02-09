@@ -6,9 +6,10 @@ $details = "";
 
 use Cwd;
 
+$xml_init_cmd = q!use Cwd;
+no strict;
 $dir = cwd;
-$dir =~ s,.*/([^/]+)$,../$1,;
-
+$dir =~ s,.*/([^/]+)$,../$1,;!;
 
 # TEST #0: Make sure that multiple patterns where the same target
 #          can be built are searched even if the first one fails
@@ -93,12 +94,16 @@ install: $(dir)/foo.c
 touch $dir/foo.c
 $dir/foo.o");
 
-unlink("$dir/foo.c");
+$xml_init_cmd = q!use Cwd;
+no strict;
+$dir = cwd;
+unlink("$dir/foo.c", "$dir/foo.bar");!;
 
 
 # TEST #3: make sure precious flag is set properly for targets
 #          that are built via implicit rules (Savannah bug #13218).
 #
+$xml_skip = 1;
 run_make_test('
 .DELETE_ON_ERROR:
 
@@ -113,12 +118,16 @@ $(dir)/foo.bar:
 "#MAKE#: *** [#MAKEFILE#;6: $dir/foo.bar] Error 1",
 512);
 
-unlink("$dir/foo.bar");
+$xml_init_cmd = q!no strict;
+$dir = cwd;
+unlink("$dir/foo.bar");!;
 
 
 # TEST #4: make sure targets of a matched implicit pattern rule are
 #          never considered intermediate (Savannah bug #13022).
 #
+# Skip this for xml
+$xml_skip = 1;
 run_make_test('
 .PHONY: all
 all: foo.c foo.o
@@ -143,7 +152,11 @@ touch foo.h
 touch foo.c
 echo foo.c foo.h >foo.o');
 
-unlink('foo.in', 'foo.h', 'foo.c', 'foo.o');
+$xml_init_cmd = q!unlink('foo.in', 'foo.h', 'foo.c', 'foo.o', 'foo.ch');!;
+
+# Skip this for XML, not clear how to handle this,
+# in %.s1 %.s2: %.orig if %s1 activated, %s2 is ignored
+$xml_skip = 1;
 
 # TEST #5: make sure both prefix and suffix patterns work with multiple
 #          target patterns (Savannah bug #26593).
@@ -175,10 +188,14 @@ clean: ; @%s $(SRC) $(COPY) $(BIN)
 !, $CMD_rmfile),
               '', "ok\n");
 
-unlink(qw(xyz xyz.cp xyz.c));
+$xml_init_cmd = q!unlink(qw(xyz xyz.cp xyz.c dep));!;
 
 # TEST 7: Make sure that all prereqs of all "also_make" targets get created
 # before any of the things that depend on any of them.  Savannah bug #19108.
+
+# Skip this for XML, not clear how to handle this,
+# in %.s1 %.s2: %.orig if %s1 activated, %s2 is ignored
+$xml_skip = 1;
 
 run_make_test(q!
 final: x ; @echo $@
@@ -192,9 +209,11 @@ dep: ; @echo $@
 
 # TEST 8: Verify we can remove pattern rules.  Savannah bug #18622.
 
+$xml_init_cmd = q!
 my @f = (qw(foo.w foo.ch));
-touch(@f);
 
+touch(@f);!;
+$xml_skip = 1;
 run_make_test(q!
 CWEAVE := :
 
@@ -205,7 +224,9 @@ CWEAVE := :
               'foo.tex',
               "#MAKE#: *** No rule to make target 'foo.tex'.  Stop.", 512);
 
-unlink(@f);
+$xml_init_cmd = q!
+my @f = (qw(foo.w foo.ch));
+unlink(@f);!;
 
 # TEST #9: Test shortest stem selection in pattern rules.
 
@@ -223,8 +244,9 @@ all: foo.x foo-mt.x
 # Test pattern rules building the same targets
 # See SV 54233.  Rely on our standard test timeout to break the loop
 
-touch('a.c');
+$xml_init_cmd = q!touch('a.c');!;
 
+$xml_skip = 1;
 run_make_test(q!
 all: a.elf a.dbg
 

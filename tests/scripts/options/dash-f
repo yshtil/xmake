@@ -34,6 +34,8 @@ print MAKEFILE "THREE: \n";
 print MAKEFILE "\t\@echo This is the output from makefile 3\n";
 close(MAKEFILE);
 
+# Get rid of side effects
+$xml_init_cmd = q!unlink(qw(ONE TWO THREE FOUR));!;
 
 # Create the answer to what should be produced by this Makefile
 $answer = "This is the output from the original makefile\n";

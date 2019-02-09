@@ -14,18 +14,20 @@ clean: ; $CMD_rmfile $example
 !;
 close(MAKEFILE);
 
-touch($example);
-run_make_with_options($makefile,"",&get_logfile,0);
+$xml_init_cmd = qq!touch("$example");!;
 
 $answer = "This makefile did not clean the dir... good\n";
+run_make_with_options($makefile,"",&get_logfile,0);
+
 compare_output($answer,&get_logfile(1)) || error("abort");
 
-
 $answer = "$CMD_rmfile $example\n";
+$xml_post_check = qq!if (-f "$example") {
+  \$test_passed = 0;
+} else {1}!;
+
 run_make_with_options($makefile,"clean",&get_logfile,0);
-if (-f $example) {
-  $test_passed = 0;
-}
+
 compare_output($answer,&get_logfile(1)) || error("abort");
 
 1;

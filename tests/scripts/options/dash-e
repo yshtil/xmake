@@ -4,7 +4,7 @@ $description = "The following test creates a makefile to ...";
 
 $details = "";
 
-$extraENV{GOOGLE} = 'boggle';
+$xml_init_cmd = q!$extraENV{GOOGLE} = 'boggle';!;
 
 open(MAKEFILE,"> $makefile");
 
@@ -15,9 +15,9 @@ EOF
 
 close(MAKEFILE);
 
-&run_make_with_options($makefile, '-e' ,&get_logfile);
-
 $answer = "boggle\n";
+
+&run_make_with_options($makefile, '-e' ,&get_logfile);
 
 &compare_output($answer,&get_logfile(1));
 

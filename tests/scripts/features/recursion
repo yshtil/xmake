@@ -3,6 +3,8 @@ $description = "Test recursion.";
 
 $details = "DETAILS";
 
+$xml and return -1;
+
 # Test some basic recursion.
 run_make_test('
 all:

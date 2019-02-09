@@ -17,6 +17,7 @@ all: ; @echo $y
 
 # TEST #1
 # Bogus variable value passed on the command line.
+$xml_skip = 1;                  # Don't know how to handle this with -x
 run_make_test(undef,
               ['x=$(other'],
               '#MAKEFILE#:4: *** unterminated variable reference.  Stop.',

@@ -21,10 +21,10 @@ print MAKEFILE "string := \$(addprefix src${pathsep},a.b.z.foo hacks) \n"
 
 close(MAKEFILE);
 
-&run_make_with_options($makefile,"",&get_logfile,0);
-
 # Create the answer to what should be produced by this Makefile
 $answer = "src${pathsep}a.b.z.foo src${pathsep}hacks\n";
+
+&run_make_with_options($makefile,"",&get_logfile,0);
 
 # COMPARE RESULTS
 
