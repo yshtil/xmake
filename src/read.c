@@ -1401,7 +1401,9 @@ eval (struct ebuffer *ebuf, int set_default)
 
   free (collapsed);
   free (commands);
+#ifdef XML
   current_floc = NULL;
+#endif
 }
 
 

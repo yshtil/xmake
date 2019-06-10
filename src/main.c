@@ -166,6 +166,8 @@ int xml_flag = 0; /* May contain the prefix of variables to report */
 const char *xml_prefix = 0;
 extern char *def_goal;
 int wait_job_inprogress_flag = 1;
+#else
+int wait_job_inprogress_flag = 0;
 #endif
 
 char *template;
@@ -504,7 +506,9 @@ static const struct command_switch switches[] =
     { CHAR_MAX+9, string, &jobserver_auth, 1, 0, 0, 0, 0, "jobserver-fds" },
     { CHAR_MAX+10, flag_off, &wait_job_inprogress_flag, 1, 1, 0, 0, 0,
       "inhibit-wait-jobinprogress" },
+#ifdef XML
     { CHAR_MAX+11, string, &xml_prefix, 0, 0, 0, 0, 0, "prefix" },
+#endif
     { 0, 0, 0, 0, 0, 0, 0, 0, 0 }
   };
 
