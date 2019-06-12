@@ -1,0 +1,44 @@
+#                                                                    -*-perl-*-
+$description = "Test the xor function.\n";
+
+$details = "Try various uses of xor
+results.\n";
+
+$DB::single = 1;
+# TEST #0
+#
+foreach my $test (['a', 'b'],   # False
+                  ['a', ''],    # True
+                  ['', ''],     # False
+                  ['', 'b'],     #true
+                  )
+{
+  my ($a,$b) = @$test;
+  my $res;
+
+  if ($a && $b || !$a && !$b)
+  {
+    $res = '';
+  } elsif ($a)
+  {
+    $res = $a;
+  } else
+  {
+    $res = $b;
+  }
+
+  run_make_test("
+true  := T
+false :=
+
+SEQ = \$(__gmsl_tr2)\$(if \$(subst x\$1,,x\$2)\$(subst x\$2,,x\$1),\$(false),\$(true))
+res = \$(xor $a, $b)
+
+all:
+	@echo res=\$(res)",
+              '',
+              "res=$res\n");
+
+}
+
+1;
