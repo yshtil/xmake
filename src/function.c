@@ -1407,7 +1407,7 @@ func_and (char *o, char **argv, const char *funcname UNUSED)
   Both CONDITIONS are evaluated and if exactly one of them is NOT empty, its value is returned.
   Otherwise an empty string is returned
 
-  if called as nxor returns:
+  if called as xnor returns:
     empty if xor is nonempty
     TRUE1 (T) if xor is empty
 */
@@ -1448,7 +1448,7 @@ func_xor (char *o, char **argv, const char *funcname)
         break;
     }
 
-  if (*funcname == 'n')
+  if (funcname[1] == 'n')
     o = variable_buffer_output (o, result ? "" : TRUE1, result ? 0 : sizeof(TRUE1) -1) ;
   else
     o = variable_buffer_output (o, result ? result : "", result ? strlen(result) : 0) ;
@@ -2453,7 +2453,7 @@ static struct function_table_entry function_table_init[] =
   FT_ENTRY ("or",            1,  0,  0,  func_or),
   FT_ENTRY ("and",           1,  0,  0,  func_and),
   FT_ENTRY ("xor",           2,  2,  0,  func_xor),
-  FT_ENTRY ("nxor",          2,  2,  0,  func_xor),
+  FT_ENTRY ("xnor",          2,  2,  0,  func_xor),
   FT_ENTRY ("value",         0,  1,  1,  func_value),
   FT_ENTRY ("eval",          0,  1,  1,  func_eval),
   FT_ENTRY ("file",          1,  2,  1,  func_file),

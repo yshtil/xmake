@@ -7,7 +7,7 @@ results.\n";
 $DB::single = 1;
 # TEST #0
 #
-foreach my $t (qw/xor nxor/)
+foreach my $t (qw/xor xnor/)
 {
   foreach my $test (['a', 'b'], # False
                     ['a', ''],  # True
@@ -31,7 +31,7 @@ foreach my $t (qw/xor nxor/)
     }
 
     # Reverse result if nxor
-    if (($t eq 'nxor'))
+    if (($t eq 'xnor'))
     {
       $res = $res ? '' : 'T';
     }
