@@ -27,6 +27,8 @@ this program.  If not, see <http://www.gnu.org/licenses/>.  */
 #include "amiga.h"
 #endif
 
+#define TRUE1 "T"
+
 #ifdef XML
 #include "xmldef.h"
 extern char **xml_flag;
@@ -1396,19 +1398,22 @@ func_and (char *o, char **argv, const char *funcname UNUSED)
   return o;
 }
 
-/* $(xor (condition1,condition2) 
-returns 1 if exactly one of the booleans is true, empty string otherwise
+/* $(xor OR nxor (condition1,condition2) 
 
   A CONDITION is false iff it evaluates to an empty string.  White
   space before and after CONDITION are stripped before evaluation.
 
+  if called as xor:
   Both CONDITIONS are evaluated and if exactly one of them is NOT empty, its value is returned.
   Otherwise an empty string is returned
 
+  if called as nxor returns:
+    empty if xor is nonempty
+    TRUE1 (T) if xor is empty
 */
 
 static char *
-func_xor (char *o, char **argv, const char *funcname UNUSED)
+func_xor (char *o, char **argv, const char *funcname)
 {
   char *result = NULL;;
   
@@ -1443,55 +1448,16 @@ func_xor (char *o, char **argv, const char *funcname UNUSED)
         break;
     }
 
-  o = variable_buffer_output (o, result ? result : "", result ? strlen(result) : 0) ;
-  free(result);
+  if (*funcname == 'n')
+    o = variable_buffer_output (o, result ? "" : TRUE1, result ? 0 : sizeof(TRUE1) -1) ;
+  else
+    o = variable_buffer_output (o, result ? result : "", result ? strlen(result) : 0) ;
+
+  if (result)
+    free(result);
   return o;
   
 }
-
-/* $(func (condition1,condition2) */
-#ifdef _BLA
-static char *
-func_nand_nor_xnor (char *o, char **argv, const char *funcname UNUSED)
-{
-  
-  char *expansion;
-
-  while (1)
-    {
-      const char *begp = *argv;
-      const char *endp = begp + strlen (*argv) - 1;
-      size_t result;
-
-      /* An empty condition is always false.  */
-      strip_whitespace (&begp, &endp);
-      if (begp > endp)
-        return o;
-
-      expansion = expand_argument (begp, endp+1);
-      result = strlen (expansion);
-
-      /* If the result is false, stop here: we're done.  */
-      if (!result)
-        break;
-
-      /* Otherwise the result is true.  If this is the last one, keep this
-         result and quit.  Otherwise go on to the next one!  */
-
-      if (*(++argv))
-        free (expansion);
-      else
-        {
-          o = variable_buffer_output (o, expansion, result);
-          break;
-        }
-    }
-
-  free (expansion);
-
-  return o;
-}
-#endif
 
 static char *
 func_wildcard (char *o, char **argv, const char *funcname UNUSED)
@@ -2487,6 +2453,7 @@ static struct function_table_entry function_table_init[] =
   FT_ENTRY ("or",            1,  0,  0,  func_or),
   FT_ENTRY ("and",           1,  0,  0,  func_and),
   FT_ENTRY ("xor",           2,  2,  0,  func_xor),
+  FT_ENTRY ("nxor",          2,  2,  0,  func_xor),
   FT_ENTRY ("value",         0,  1,  1,  func_value),
   FT_ENTRY ("eval",          0,  1,  1,  func_eval),
   FT_ENTRY ("file",          1,  2,  1,  func_file),
