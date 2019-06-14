@@ -27,8 +27,6 @@ this program.  If not, see <http://www.gnu.org/licenses/>.  */
 #include "amiga.h"
 #endif
 
-#define TRUE1 "T"
-
 #ifdef XML
 #include "xmldef.h"
 extern char **xml_flag;
@@ -1407,9 +1405,7 @@ func_and (char *o, char **argv, const char *funcname UNUSED)
   Both CONDITIONS are evaluated and if exactly one of them is NOT empty, its value is returned.
   Otherwise an empty string is returned
 
-  if called as xnor returns:
-    empty if xor is nonempty
-    TRUE1 (T) if xor is empty
+  if called as xnor returns string boolean of not xor
 */
 
 static char *
@@ -1449,7 +1445,7 @@ func_xor (char *o, char **argv, const char *funcname)
     }
 
   if (funcname[1] == 'n')
-    o = variable_buffer_output (o, result ? "" : TRUE1, result ? 0 : sizeof(TRUE1) -1) ;
+    o = variable_buffer_output (o, result ? "" : "1", result ? 0 : 1) ;
   else
     o = variable_buffer_output (o, result ? result : "", result ? strlen(result) : 0) ;
 
@@ -2070,25 +2066,48 @@ func_shell (char *o, char **argv, const char *funcname UNUSED)
 }
 #endif  /* !VMS */
 
-#ifdef EXPERIMENTAL
-
 /*
   equality. Return is string-boolean, i.e., the empty string is false.
  */
 static char *
-func_eq (char *o, char **argv, char *funcname UNUSED)
+func_eq (char *o, char **argv, const char *funcname)
 {
-  int result = ! strcmp (argv[0], argv[1]);
-  o = variable_buffer_output (o,  result ? "1" : "", result);
+  int result;
+  const char *order[2] = {"first", "second"};;
+
+  if (*funcname != 's') {
+    /* Check both arguments for being numeric */
+    for (int i=0;i<=1;i++)
+      {
+        char buf[100];
+        sprintf(buf, "non-numeric %s argument to '%s' function", order[i], funcname);
+        check_numeric (argv[i], _(buf));
+      }
+  }
+
+  if (!strcmp(funcname, "seq"))
+    result = strcmp (argv[0], argv[1]) == 0;
+  else if (!strcmp(funcname, "sne"))
+    result = strcmp (argv[0], argv[1]) != 0;
+  else {
+    /* Convert to int */
+    int a = atoi(argv[0]), b = atoi(argv[1]);
+    
+    if (!strcmp(funcname, "eq"))
+      result = a == b;
+    else
+      result = a != b;
+  }
+  
+  o = variable_buffer_output (o,  result ? "1" : "", result ? 1 : 0);
   return o;
 }
-
 
 /*
   string-boolean not operator.
  */
 static char *
-func_not (char *o, char **argv, char *funcname UNUSED)
+func_not (char *o, char **argv, const char *funcname UNUSED)
 {
   const char *s = argv[0];
   int result = 0;
@@ -2097,7 +2116,6 @@ func_not (char *o, char **argv, char *funcname UNUSED)
   o = variable_buffer_output (o,  result ? "1" : "", result);
   return o;
 }
-#endif
 
 
 #ifdef HAVE_DOS_PATHS
@@ -2451,16 +2469,21 @@ static struct function_table_entry function_table_init[] =
   FT_ENTRY ("warning",       0,  1,  1,  func_error),
   FT_ENTRY ("if",            2,  3,  0,  func_if),
   FT_ENTRY ("or",            1,  0,  0,  func_or),
+  /* Logical */
   FT_ENTRY ("and",           1,  0,  0,  func_and),
   FT_ENTRY ("xor",           2,  2,  0,  func_xor),
   FT_ENTRY ("xnor",          2,  2,  0,  func_xor),
+  FT_ENTRY ("not",           0,  1,  1,  func_not),
+  /* End logical */
   FT_ENTRY ("value",         0,  1,  1,  func_value),
   FT_ENTRY ("eval",          0,  1,  1,  func_eval),
   FT_ENTRY ("file",          1,  2,  1,  func_file),
-#ifdef EXPERIMENTAL
-  FT_ENTRY ("eq",            2,  2,  1,  func_eq),
-  FT_ENTRY ("not",           0,  1,  1,  func_not),
-#endif
+  /* String comparison as in gmsl*/
+  FT_ENTRY ("eq",            2,  2,  1,  func_eq), /* Numeric */
+  FT_ENTRY ("neq",           2,  2,  1,  func_eq),
+  FT_ENTRY ("seq",           2,  2,  1,  func_eq), /* string */
+  FT_ENTRY ("sne",           2,  2,  1,  func_eq),
+  /* Numerical comparison */
 };
 
 #define FUNCTION_TABLE_ENTRIES (sizeof (function_table_init) / sizeof (struct function_table_entry))

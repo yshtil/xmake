@@ -1,0 +1,102 @@
+#                                                                    -*-perl-*-
+$description = "Test the equality function.\n";
+
+$details = "Try various uses of eq/neq/int_eq/int_neq
+results.\n";
+
+foreach my $t (qw/seq sne/)
+{
+  foreach my $test (['a', 'b'],
+                    ['a', 'a'],
+                   )
+  {
+    my ($a,$b) = @$test;
+    my $res;
+
+    # Test eq
+    if ($a eq $b)
+    {
+      $res = 1;
+    }  else
+    {
+      $res = '';
+    }
+
+    # Reverse result if nxor
+    if (($t eq 'sne'))
+    {
+      $res = $res ? '' : '1';
+    }
+    
+    run_make_test("
+
+res = \$($t $a,$b)
+
+all:
+	\@echo res=\$(res)",
+                  '',
+                  "res=$res\n");
+
+  }
+}
+
+foreach my $t (qw/eq neq/)
+{
+  foreach my $test ([1, 1],
+                    [1, 0],
+                   )
+  {
+    my ($a,$b) = @$test;
+    my $res;
+
+    # Test eq
+    if ($a == $b)
+    {
+      $res = 1;
+    }  else
+    {
+      $res = '';
+    }
+
+    # Reverse result if nxor
+    if (($t eq 'neq'))
+    {
+      $res = $res ? '' : '1';
+    }
+    
+    run_make_test("
+
+res = \$($t $a,$b)
+
+all:
+	\@echo res=\$(res)",
+                  '',
+                  "res=$res\n");
+
+  }
+
+  # Test non-numeric args
+  foreach my $test (
+                    ['', 1, 'first'],
+                    ['a', 1, 'first'],
+                    [1,'a', 'second'],
+                    [1,'', 'second'],
+                   ) {
+    
+    my ($a,$b, $which) = @$test;
+    my $val = $which eq 'first' ? $a : $b;
+    
+    run_make_test("
+
+res = \$($t $a,$b)
+
+all:
+	\@echo res=\$(res)",
+                  '',
+                  "#MAKEFILE#:3: *** non-numeric $which argument to '$t' function: '$val'.  Stop.\n", 512)  }
+  
+}
+
+# Test eq/neq
+
+1;

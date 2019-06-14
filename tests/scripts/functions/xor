@@ -33,7 +33,7 @@ foreach my $t (qw/xor xnor/)
     # Reverse result if nxor
     if (($t eq 'xnor'))
     {
-      $res = $res ? '' : 'T';
+      $res = $res ? '' : '1';
     }
     
     run_make_test("
@@ -43,7 +43,7 @@ false :=
 res = \$($t $a, $b)
 
 all:
-	@echo res=\$(res)",
+	\@echo res=\$(res)",
                   '',
                   "res=$res\n");
 
