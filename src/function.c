@@ -2417,6 +2417,73 @@ func_abspath (char *o, char **argv, const char *funcname UNUSED)
   return o;
 }
 
+/*
+Function:  rest (same as LISP's cdr, or tail)
+Arguments: 1: A list
+Returns:   Returns the list with the first element removed
+*/
+
+static char *
+func_rest (char *o, char **argv, const char *funcname UNUSED)
+{
+  const char *p;
+  const char *end_p = argv[0];
+  
+  /* Skip first word */
+  
+  p = find_next_token (&end_p, 0);
+  p = find_next_token (&end_p, 0);
+  
+  if (p)
+    {
+      while (find_next_token (&end_p, 0) != 0)
+        ;
+
+      o = variable_buffer_output (o, p, end_p - p);
+    }
+
+  return o;
+}
+
+/*
+Function:  rest (same as LISP's cdr, or tail)
+Arguments: 1: A list
+Returns:   Returns the list with the last element removed
+$(wordlist 2,$(words $1),x $1)
+*/
+
+static char *
+func_chop (char *o, char **argv, const char *funcname UNUSED)
+{
+  int start = 1, count = -1;
+
+  const char *word_iterator = argv[0];
+  while (find_next_token (&word_iterator, NULL) != 0)
+    ++count;
+
+  if (count > 0)
+    {
+      const char *p;
+      const char *end_p = argv[0];
+
+      /* Find the beginning of the "start"th word.  */
+      while (((p = find_next_token (&end_p, 0)) != 0) && --start)
+        ;
+
+      if (p)
+        {
+          /* Find the end of the "count"th word from start.  */
+          while (--count && (find_next_token (&end_p, 0) != 0))
+            ;
+
+          /* Return the stuff in the middle.  */
+          o = variable_buffer_output (o, p, end_p - p);
+        }
+    }
+
+  return o;
+}
+
 /* Lookup table for builtin functions.
 
    This doesn't have to be sorted; we use a straight lookup.  We might gain
@@ -2483,7 +2550,9 @@ static struct function_table_entry function_table_init[] =
   FT_ENTRY ("neq",           2,  2,  1,  func_eq),
   FT_ENTRY ("seq",           2,  2,  1,  func_eq), /* string */
   FT_ENTRY ("sne",           2,  2,  1,  func_eq),
-  /* Numerical comparison */
+  /* List manipulation */
+  FT_ENTRY ("rest",          1,  0,  0,  func_rest),
+  FT_ENTRY ("chop",          1,  1,  0,  func_chop),
 };
 
 #define FUNCTION_TABLE_ENTRIES (sizeof (function_table_init) / sizeof (struct function_table_entry))
