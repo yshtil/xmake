@@ -2498,6 +2498,96 @@ func_chop (char *o, char **argv, const char *funcname UNUSED)
 
 static char *func_call (char *o, char **argv, const char *funcname);
 
+/*
+Function:  map
+Arguments: 1: Name of function to $(call) for each element of list
+           2: List to iterate over calling the function in 1
+Returns:   The list after calling the function on each element
+*/
+
+static char *
+func_map (char *o, char **argv, const char *funcname UNUSED)
+{
+  const char *word_iterator = argv[1];
+  char *newargv[3] = {argv[0], NULL, NULL};
+  
+  while ((newargv[1] = find_next_token (&word_iterator, NULL)))
+    o = func_call(o, newargv, "func_call");
+  
+  
+  return o;
+}
+
+/*
+Function:  leq,lne
+Arguments: 1: A list to compare against...
+           2: ...this list
+Returns:   Returns $(true)/False if the two lists are (not) identical
+
+ */
+static char *
+func_cmp (char *o, char **argv, const char *funcname)
+{
+  /* Two iterators */
+  const char *word_iterator1 = argv[0];
+  const char *word_iterator2 = argv[1];
+  int result = 1; /* Assume true */
+  
+  while (1) {
+    char *p1 = find_next_token (&word_iterator1, NULL);
+    char *p2 = find_next_token (&word_iterator2, NULL);
+
+    if ((!p1 && p2) || (p1 && !p2)) {
+      /* Lists are not the same size */
+      result = 0;
+      break;
+    }
+
+    if (!p1 && !p2)
+      break; /* All good */
+
+    if (strcmp(p1, p2)) {
+      /* Not equals */
+      result = 0;
+      break;
+    }
+  }
+
+  if (funcname[1] == 'n')
+    result = !result;
+
+  o = variable_buffer_output (o, result ? "T" : "", result ? 1 : 0) ;
+
+
+  return o;
+}
+
+/* 
+# Function:  reverse
+# Arguments: 1: A list to reverse
+# Returns:   The list with its elements in reverse order
+*/
+
+static char *
+func_reverse (char *o, char **argv, const char *funcname UNUSED)
+{
+  int i = strlen(argv[0]);
+  char *p = argv[0]+i-1;
+  char result[i+1];
+  char *p1 = result;
+  char *nargv[2] = {result, NULL};
+
+  result[i] = 0;
+  
+  while (*p) {
+    *p1++ = *p--;
+  }
+
+  /* Strip */
+  o = func_strip(o, nargv, "func_strip");
+  return o;
+}
+
 #define FT_ENTRY(_name, _min, _max, _exp, _func) \
   { { (_func) }, STRING_SIZE_TUPLE(_name), (_min), (_max), (_exp), 0 }
 
@@ -2535,11 +2625,11 @@ static struct function_table_entry function_table_init[] =
   FT_ENTRY ("error",         0,  1,  1,  func_error),
   FT_ENTRY ("warning",       0,  1,  1,  func_error),
   FT_ENTRY ("if",            2,  3,  0,  func_if),
-  FT_ENTRY ("or",            1,  0,  0,  func_or),
+  FT_ENTRY ("or",            1,  0,  1,  func_or),
   /* Logical */
-  FT_ENTRY ("and",           1,  0,  0,  func_and),
-  FT_ENTRY ("xor",           2,  2,  0,  func_xor),
-  FT_ENTRY ("xnor",          2,  2,  0,  func_xor),
+  FT_ENTRY ("and",           1,  0,  1,  func_and),
+  FT_ENTRY ("xor",           2,  2,  1,  func_xor),
+  FT_ENTRY ("xnor",          2,  2,  1,  func_xor),
   FT_ENTRY ("not",           0,  1,  1,  func_not),
   /* End logical */
   FT_ENTRY ("value",         0,  1,  1,  func_value),
@@ -2551,8 +2641,13 @@ static struct function_table_entry function_table_init[] =
   FT_ENTRY ("seq",           2,  2,  1,  func_eq), /* string */
   FT_ENTRY ("sne",           2,  2,  1,  func_eq),
   /* List manipulation */
-  FT_ENTRY ("rest",          1,  0,  0,  func_rest),
-  FT_ENTRY ("chop",          1,  1,  0,  func_chop),
+  FT_ENTRY ("rest",          1,  0,  1,  func_rest),
+  FT_ENTRY ("chop",          1,  1,  1,  func_chop),
+  FT_ENTRY ("map",           2,  2,  1,  func_map),
+  /* List comparison */
+  FT_ENTRY ("leq",           2,  2,  1,  func_cmp),
+  FT_ENTRY ("lne",           2,  2,  1,  func_cmp),
+  FT_ENTRY ("reverse",       1,  1,  1,  func_reverse),
 };
 
 #define FUNCTION_TABLE_ENTRIES (sizeof (function_table_init) / sizeof (struct function_table_entry))

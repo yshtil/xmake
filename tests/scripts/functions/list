@@ -1,7 +1,7 @@
 #                                                                    -*-perl-*-
 $description = "List manipulaton functions\n";
 
-$details = "Try various uses of rest, chop
+$details = "Try various uses of rest, chop, map
 results.\n";
 
 run_make_test('
@@ -20,5 +20,69 @@ all:
 	@echo res=$(res)',
                   "",
                   "res=a b\n"
-);
+             );
+
+run_make_test('
+func = $(eval $1 := abc)
+
+all:
+	@echo $(map func,bla)bla=$(bla)',
+                  "",
+                  "bla=abc\n"
+             );
+
+# lne, leq
+foreach my $t (qw/leq lne/)
+{
+  foreach my $test (
+                    ['1 2', '1', ''], # False
+                    ['1', '1 2', ''], # False
+                    ['1 2', '1 3', ''], # False
+                    ['1 2', '1 2', 'T'], # true
+                   )
+  {
+    my ($a,$b, $res) = @$test;
+
+    if ($t eq 'lne')
+    {
+      $res = $res ? "" : "T";
+    }
+
+    run_make_test("
+
+res = \$($t $a,$b)
+
+all:
+	\@echo res=\$(res)",
+                  '',
+                  "res=$res\n");
+
+  }
+}
+
+# Reverse
+foreach my $test (
+                  ['1 2', '2 1'],
+                  ['1   2', '2 1'],
+                  [' 1 2 ', '2 1'],
+                  ['', '',],
+                 )
+{
+  my ($a, $res) = @$test;
+
+  if ($t eq 'lne')
+  {
+    $res = $res ? "" : "T";
+  }
+
+  run_make_test("
+
+res = \$(reverse $a)
+
+all:
+	\@echo res=\$(res)",
+                '',
+                "res=$res\n");
+
+}
 1;
